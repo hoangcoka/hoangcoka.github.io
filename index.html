@@ -104,8 +104,13 @@
       navigator.clipboard.writeText(text).then(() => {
         alert('Đã copy: ' + text);
 
-        // Đánh dấu tài khoản là đã dùng
-        firebase.database().ref("accounts/" + accountId).update({ used: true });
+        // Lấy dữ liệu tài khoản để chuyển sang used/
+        firebase.database().ref("accounts/" + accountId).once("value").then(snapshot => {
+          const account = snapshot.val();
+          firebase.database().ref("used/" + accountId).set(account).then(() => {
+            firebase.database().ref("accounts/" + accountId).remove();
+          });
+        });
       });
     }
   </script>
