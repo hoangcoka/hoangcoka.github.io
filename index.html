@@ -79,17 +79,17 @@
     const content = document.getElementById("accountContent");
     const totalCountEl = document.getElementById("totalCount");
 
-    // Cập nhật số lượng tài khoản còn lại theo thời gian thực
+    // Đếm realtime chính xác số lượng tài khoản chưa dùng
     db.ref("accounts").on("value", snapshot => {
       const data = snapshot.val();
-      const available = Object.values(data || {}).filter(acc => acc.used !== true);
+      const available = Object.values(data || {}).filter(acc => acc && acc.used !== true);
       totalCountEl.innerText = `Tổng số tài khoản còn lại: ${available.length}`;
     });
 
     function loadAccount() {
       db.ref("accounts").once("value").then(snapshot => {
         const data = snapshot.val();
-        const entries = Object.entries(data || {}).filter(([_, value]) => value.used !== true);
+        const entries = Object.entries(data || {}).filter(([_, value]) => value && value.used !== true);
 
         if (entries.length === 0) {
           content.innerHTML = "<p>Hết tài khoản để cấp!</p>";
