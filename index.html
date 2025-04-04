@@ -71,15 +71,16 @@
 
     db.ref("accounts").once("value").then(snapshot => {
       const data = snapshot.val();
-      const entries = Object.entries(data || {});
-      const available = entries.find(([key, value]) => value.used !== true);
+      const entries = Object.entries(data || {}).filter(([_, value]) => value.used !== true);
 
-      if (!available) {
+      if (entries.length === 0) {
         content.innerHTML = "<p>Hết tài khoản để cấp!</p>";
         return;
       }
 
-      const [accountId, account] = available;
+      // Lấy tài khoản ngẫu nhiên
+      const randomIndex = Math.floor(Math.random() * entries.length);
+      const [accountId, account] = entries[randomIndex];
 
       const createRow = (label, value, id) => `
         <div class="label">${label}</div>
