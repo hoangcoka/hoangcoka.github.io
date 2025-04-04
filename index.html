@@ -2,135 +2,114 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Công cụ chuyển TXT → JSON (Tách riêng Apple ID)</title>
+  <title>Hiển thị tài khoản để Copy + Apple ID cố định</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f8f9fa;
+      background: #f4f4f4;
       padding: 40px;
       text-align: center;
     }
     .card {
       background: white;
-      max-width: 600px;
-      margin: auto;
-      padding: 30px;
+      max-width: 500px;
+      margin: 20px auto;
+      padding: 20px;
       border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    input[type=file], input[type=text] {
-      margin: 10px 0;
-      padding: 8px;
-      width: 80%;
+    .label {
+      font-weight: bold;
+      margin-top: 15px;
     }
-    pre {
-      text-align: left;
+    .value {
       background: #eee;
-      padding: 10px;
+      padding: 8px;
       border-radius: 6px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      max-height: 400px;
-      overflow-y: auto;
+      margin-top: 5px;
+      font-family: monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     button {
-      padding: 10px 20px;
-      margin-top: 20px;
-      font-size: 14px;
-      background-color: #28a745;
+      padding: 6px 12px;
+      font-size: 13px;
+      background-color: #007bff;
       color: white;
       border: none;
-      border-radius: 6px;
+      border-radius: 4px;
       cursor: pointer;
     }
   </style>
 </head>
 <body>
+  <h2>Danh sách tài khoản từ Firebase</h2>
+  <div id="accountContent" class="card">Đang tải dữ liệu...</div>
   <div class="card">
-    <h2>Chuyển file <code>.txt</code> thành <code>accounts.json</code></h2>
-    <input type="file" id="fileInput" accept=".txt">
-    <div id="output"></div>
-    <a id="downloadLink" style="display:none" download="accounts.json">
-      <button>Tải file Accounts JSON</button>
-    </a>
+    <div class="label">ID Apple:</div>
+    <div class="value">
+      <span id="appleId">appleid@example.com</span>
+      <button onclick="copyText('appleId')">Copy</button>
+    </div>
+    <div class="label">Mật khẩu ID Apple:</div>
+    <div class="value">
+      <span id="applePass">applepassword123</span>
+      <button onclick="copyText('applePass')">Copy</button>
+    </div>
   </div>
 
-  <div class="card" style="margin-top: 30px;">
-    <h2>Tạo file <code>apple.json</code> chứa ID Apple</h2>
-    <input type="text" id="appleId" placeholder="Nhập ID Apple">
-    <input type="text" id="applePass" placeholder="Nhập mật khẩu ID Apple">
-    <div id="appleOutput"></div>
-    <a id="appleDownload" style="display:none" download="apple.json">
-      <button style="background-color:#007bff">Tải file Apple JSON</button>
-    </a>
-  </div>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <script>
-    document.getElementById('fileInput').addEventListener('change', function (e) {
-      const file = e.target.files[0];
-      if (!file) return;
+    const firebaseConfig = {
+      apiKey: "AIzaSyCZNtz2gIoKL_sKOTEn71TVN79bGaE3n8s",
+      authDomain: "hoangcoka-59852.firebaseapp.com",
+      databaseURL: "https://hoangcoka-59852-default-rtdb.firebaseio.com",
+      projectId: "hoangcoka-59852",
+      storageBucket: "hoangcoka-59852.appspot.com",
+      messagingSenderId: "253139527895",
+      appId: "1:253139527895:web:622bee351144667feb6892"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const lines = e.target.result.split(/\r?\n/);
-        const accounts = {};
+    const content = document.getElementById("accountContent");
 
-        lines.forEach((line, index) => {
-          const parts = line.trim().replace(/[:|]/g, ' ').split(/\s+/);
-          if (parts.length >= 2) {
-            accounts[`acc${index + 1}`] = {
-              username: parts[0],
-              password: parts[1],
-              email: parts[2] || "",
-              passmail: parts[3] || "",
-              used: false
-            };
-          }
-        });
-
-        const parsedData = { accounts };
-        const jsonData = JSON.stringify(parsedData, null, 2);
-        const blob = new Blob([jsonData], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-
-        const link = document.getElementById('downloadLink');
-        link.href = url;
-        link.style.display = 'inline-block';
-
-        document.getElementById('output').innerHTML = `<h4>Xem trước accounts.json:</h4><pre>${jsonData}</pre>`;
-      };
-      reader.readAsText(file);
-    });
-
-    document.getElementById('appleId').addEventListener('input', updateAppleJson);
-    document.getElementById('applePass').addEventListener('input', updateAppleJson);
-
-    function updateAppleJson() {
-      const id = document.getElementById('appleId').value.trim();
-      const pass = document.getElementById('applePass').value.trim();
-
-      if (!id && !pass) return;
-
-      const appleData = {
-        apple_id: {
-          username: id,
-          password: pass,
-          email: "",
-          passmail: "",
-          used: false,
-          fixed: true
-        }
-      };
-
-      const json = JSON.stringify(appleData, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-
-      const link = document.getElementById('appleDownload');
-      link.href = url;
-      link.style.display = 'inline-block';
-      document.getElementById('appleOutput').innerHTML = `<h4>Xem trước apple.json:</h4><pre>${json}</pre>`;
+    function copyText(id) {
+      const text = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(text).then(() => alert("Đã copy: " + text));
     }
+
+    function loadAccount() {
+      db.ref("accounts").once("value").then(snapshot => {
+        const data = snapshot.val();
+        const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true && !acc.fixed);
+
+        if (entries.length === 0) {
+          content.innerHTML = "<p>Hết tài khoản để cấp!</p>";
+          return;
+        }
+
+        const [id, acc] = entries[Math.floor(Math.random() * entries.length)];
+
+        const html = `
+          <div class='label'>Tên đăng nhập:</div>
+          <div class='value'><span id='user'>${acc.username}</span><button onclick="copyText('user')">Copy</button></div>
+          <div class='label'>Mật khẩu:</div>
+          <div class='value'><span id='pass'>${acc.password}</span><button onclick="copyText('pass')">Copy</button></div>
+          <div class='label'>Email:</div>
+          <div class='value'><span id='mail'>${acc.email}</span><button onclick="copyText('mail')">Copy</button></div>
+          <div class='label'>Mật khẩu Email:</div>
+          <div class='value'><span id='passmail'>${acc.passmail}</span><button onclick="copyText('passmail')">Copy</button></div>
+        `;
+        content.innerHTML = html;
+      });
+    }
+
+    window.onload = loadAccount;
   </script>
 </body>
 </html>
