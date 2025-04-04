@@ -9,22 +9,6 @@
       padding: 40px;
       background: #f8f8f8;
     }
-    textarea {
-      font-size: 16px;
-      padding: 10px;
-      width: 100%;
-      max-width: 600px;
-      margin-bottom: 10px;
-    }
-    button {
-      padding: 8px 12px;
-      font-size: 14px;
-      cursor: pointer;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-    }
     .account {
       background: #fff;
       padding: 15px;
@@ -36,42 +20,52 @@
       align-items: center;
       max-width: 600px;
     }
+    button {
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
 
-  <h2>Nhập danh sách tài khoản</h2>
-  <textarea id="rawInput" rows="8" placeholder="Ví dụ:\nemail1|pass1\nemail2 pass2\nemail3:pass3"></textarea><br>
-  <button onclick="parseAccounts()">Tạo danh sách</button>
-
-  <div id="accountList"></div>
+  <h2>Danh sách tài khoản</h2>
+  <div id="accountList">Đang tải dữ liệu...</div>
 
   <script>
-    function parseAccounts() {
-      const input = document.getElementById('rawInput').value.trim();
-      const lines = input.split('\n');
-      const output = document.getElementById('accountList');
-      output.innerHTML = '';
+    fetch('accounts.txt')
+      .then(response => response.text())
+      .then(data => {
+        const lines = data.trim().split('\n');
+        const output = document.getElementById('accountList');
+        output.innerHTML = '';
 
-      lines.forEach((line, index) => {
-        let parts = line.trim().split(/[\|\s:]/); // tách theo |, khoảng trắng hoặc :
-        if (parts.length >= 2) {
-          const acc = `${parts[0]}:${parts[1]}`;
-          const div = document.createElement('div');
-          div.className = 'account';
-          div.innerHTML = `
-            <span id="acc${index}">${acc}</span>
-            <button onclick="copyToClipboard('acc${index}')">Copy</button>
-          `;
-          output.appendChild(div);
-        }
+        lines.forEach((line, index) => {
+          const parts = line.trim().split(/[\|\s:]/);
+          if (parts.length >= 2) {
+            const acc = `${parts[0]}:${parts[1]}`;
+            const div = document.createElement('div');
+            div.className = 'account';
+            div.innerHTML = `
+              <span id="acc${index}">${acc}</span>
+              <button onclick="copyToClipboard('acc${index}')">Copy</button>
+            `;
+            output.appendChild(div);
+          }
+        });
+      })
+      .catch(err => {
+        document.getElementById('accountList').innerText = 'Lỗi tải file accounts.txt';
       });
-    }
 
     function copyToClipboard(id) {
       const text = document.getElementById(id).innerText;
       navigator.clipboard.writeText(text).then(() => {
-        alert("Đã copy: " + text);
+        alert('Đã copy: ' + text);
       });
     }
   </script>
