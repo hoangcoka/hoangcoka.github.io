@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Thông tin tài khoản</title>
+  <title>Tài khoản từ Firebase</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -44,60 +44,70 @@
   </style>
 </head>
 <body>
-
   <div class="card">
-    <div id="accountContent">Đang tải dữ liệu...</div>
+    <div id="accountContent">Đang tải dữ liệu từ Firebase...</div>
   </div>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
   <script>
-    fetch('accounts.txt')
-      .then(res => res.text())
-      .then(data => {
-        const line = data.trim().split('\n')[0];
-        const delimiters = [/\|/, /:/, /\s+/];
-        let parts = [];
+    const firebaseConfig = {
+      apiKey: "AIzaSyCZNtz2gIoKL_sKOTEn71TVN79bGaE3n8s",
+      authDomain: "hoangcoka-59852.firebaseapp.com",
+      databaseURL: "https://hoangcoka-59852-default-rtdb.firebaseio.com",
+      projectId: "hoangcoka-59852",
+      storageBucket: "hoangcoka-59852.firebasestorage.app",
+      messagingSenderId: "253139527895",
+      appId: "1:253139527895:web:622bee351144667feb6892",
+      measurementId: "G-T986WGN1S9"
+    };
 
-        for (let delimiter of delimiters) {
-          const temp = line.split(delimiter);
-          if (temp.length >= 2 && temp.length <= 4) {
-            parts = temp;
-            break;
-          }
-        }
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        const username = parts[0] || '';
-        const password = parts[1] || '';
-        const email = parts[2] || '';
-        const passmail = parts[3] || '';
+    const content = document.getElementById("accountContent");
 
-        const createRow = (label, value, id) => `
-          <div class="label">${label}</div>
-          <div class="value">
-            <span id="${id}">${value}</span>
-            <button onclick="copy('${id}')">Copy</button>
-          </div>
-        `;
+    db.ref("accounts").once("value").then(snapshot => {
+      const data = snapshot.val();
+      const entries = Object.entries(data || {});
+      const available = entries.find(([key, value]) => value.used !== true);
 
-        const html = `
-          ${createRow('Tên đăng nhập:', username, 'user')}
-          ${createRow('Mật khẩu:', password, 'pass')}
-          ${createRow('Email:', email, 'mail')}
-          ${createRow('Mật khẩu Email:', passmail, 'passmail')}
-        `;
+      if (!available) {
+        content.innerHTML = "<p>Hết tài khoản để cấp!</p>";
+        return;
+      }
 
-        document.getElementById('accountContent').innerHTML = html;
-      })
-      .catch(() => {
-        document.getElementById('accountContent').innerText = 'Không tải được file.';
-      });
+      const [accountId, account] = available;
 
-    function copy(id) {
+      const createRow = (label, value, id) => `
+        <div class="label">${label}</div>
+        <div class="value">
+          <span id="${id}">${value}</span>
+          <button onclick="copy('${id}', '${accountId}')">Copy</button>
+        </div>
+      `;
+
+      const html = `
+        ${createRow('Tên đăng nhập:', account.username || '', 'user')}
+        ${createRow('Mật khẩu:', account.password || '', 'pass')}
+        ${createRow('Email:', account.email || '', 'mail')}
+        ${createRow('Mật khẩu Email:', account.passmail || '', 'passmail')}
+      `;
+
+      content.innerHTML = html;
+    });
+
+    function copy(id, accountId) {
       const text = document.getElementById(id).innerText;
       navigator.clipboard.writeText(text).then(() => {
         alert('Đã copy: ' + text);
+
+        // Đánh dấu tài khoản là đã dùng
+        firebase.database().ref("accounts/" + accountId).update({ used: true });
       });
     }
   </script>
-
 </body>
 </html>
