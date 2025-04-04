@@ -41,22 +41,30 @@
       border-radius: 4px;
       cursor: pointer;
     }
+    input.editable {
+      width: 70%;
+      padding: 5px;
+      margin-right: 10px;
+      font-family: monospace;
+    }
   </style>
 </head>
 <body>
   <h2>Danh sách tài khoản từ Firebase</h2>
   <div id="accountContent" class="card">Đang tải dữ liệu...</div>
+
   <div class="card">
     <div class="label">ID Apple:</div>
     <div class="value">
-      <span id="appleId">appleid@example.com</span>
+      <input type="text" id="appleId" class="editable">
       <button onclick="copyText('appleId')">Copy</button>
     </div>
     <div class="label">Mật khẩu ID Apple:</div>
     <div class="value">
-      <span id="applePass">applepassword123</span>
+      <input type="text" id="applePass" class="editable">
       <button onclick="copyText('applePass')">Copy</button>
     </div>
+    <button onclick="saveAppleId()" style="margin-top:15px;background:#28a745">Lưu Apple ID</button>
   </div>
 
   <!-- Firebase SDK -->
@@ -79,8 +87,30 @@
     const content = document.getElementById("accountContent");
 
     function copyText(id) {
-      const text = document.getElementById(id).innerText;
-      navigator.clipboard.writeText(text).then(() => alert("Đã copy: " + text));
+      const value = document.getElementById(id).value || document.getElementById(id).innerText;
+      navigator.clipboard.writeText(value).then(() => alert("Đã copy: " + value));
+    }
+
+    function loadAppleId() {
+      db.ref("apple_id").once("value").then(snapshot => {
+        const data = snapshot.val() || {};
+        document.getElementById('appleId').value = data.username || "";
+        document.getElementById('applePass').value = data.password || "";
+      });
+    }
+
+    function saveAppleId() {
+      const username = document.getElementById('appleId').value.trim();
+      const password = document.getElementById('applePass').value.trim();
+
+      db.ref("apple_id").set({
+        username,
+        password,
+        email: "",
+        passmail: "",
+        used: false,
+        fixed: true
+      }).then(() => alert("✅ Đã lưu Apple ID thành công!"));
     }
 
     function loadAccount() {
@@ -109,7 +139,10 @@
       });
     }
 
-    window.onload = loadAccount;
+    window.onload = function() {
+      loadAccount();
+      loadAppleId();
+    }
   </script>
 </body>
 </html>
