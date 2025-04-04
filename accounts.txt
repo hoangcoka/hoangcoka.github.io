@@ -1,3 +1,2 @@
-email1@example.com|pass123
-email2@example.com pass456
-email3@example.com:pass789
+hoangcoka
+123abc456xyz
