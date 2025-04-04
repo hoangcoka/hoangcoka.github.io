@@ -46,4 +46,58 @@
 <body>
 
   <div class="card">
-    <div id="accountContent">Đang tải dữ
+    <div id="accountContent">Đang tải dữ liệu...</div>
+  </div>
+
+  <script>
+    fetch('accounts.txt')
+      .then(res => res.text())
+      .then(data => {
+        const line = data.trim().split('\n')[0];
+        const delimiters = [/\|/, /:/, /\s+/];
+        let parts = [];
+
+        for (let delimiter of delimiters) {
+          const temp = line.split(delimiter);
+          if (temp.length >= 2 && temp.length <= 4) {
+            parts = temp;
+            break;
+          }
+        }
+
+        const username = parts[0] || '';
+        const password = parts[1] || '';
+        const email = parts[2] || '';
+        const passmail = parts[3] || '';
+
+        const createRow = (label, value, id) => `
+          <div class="label">${label}</div>
+          <div class="value">
+            <span id="${id}">${value}</span>
+            <button onclick="copy('${id}')">Copy</button>
+          </div>
+        `;
+
+        const html = `
+          ${createRow('Tên đăng nhập:', username, 'user')}
+          ${createRow('Mật khẩu:', password, 'pass')}
+          ${createRow('Email:', email, 'mail')}
+          ${createRow('Mật khẩu Email:', passmail, 'passmail')}
+        `;
+
+        document.getElementById('accountContent').innerHTML = html;
+      })
+      .catch(() => {
+        document.getElementById('accountContent').innerText = 'Không tải được file.';
+      });
+
+    function copy(id) {
+      const text = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Đã copy: ' + text);
+      });
+    }
+  </script>
+
+</body>
+</html>
