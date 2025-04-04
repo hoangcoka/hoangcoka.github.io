@@ -8,12 +8,13 @@
       font-family: Arial, sans-serif;
       background-color: #f4f4f4;
       padding: 40px;
+      text-align: center;
     }
     .card {
       background: white;
       max-width: 500px;
       padding: 20px;
-      margin: auto;
+      margin: 20px auto;
       border-radius: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
@@ -33,7 +34,7 @@
     }
     button {
       padding: 5px 10px;
-      margin-left: 10px;
+      margin: 10px 5px;
       font-size: 13px;
       background-color: #007bff;
       color: white;
@@ -41,11 +42,19 @@
       border-radius: 4px;
       cursor: pointer;
     }
+    #footer {
+      margin-top: 40px;
+      font-size: 14px;
+      color: #555;
+    }
   </style>
 </head>
 <body>
+  <h2>Chào mừng đến với hệ thống cấp tài khoản của <strong>Công Coka</strong></h2>
+  <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
   <div class="card">
     <div id="accountContent">Đang tải dữ liệu từ Firebase...</div>
+    <button onclick="loadAccount()">Lấy tài khoản khác</button>
   </div>
 
   <!-- Firebase SDK -->
@@ -68,52 +77,60 @@
     const db = firebase.database();
 
     const content = document.getElementById("accountContent");
+    const totalCountEl = document.getElementById("totalCount");
 
-    db.ref("accounts").once("value").then(snapshot => {
-      const data = snapshot.val();
-      const entries = Object.entries(data || {}).filter(([_, value]) => value.used !== true);
+    function loadAccount() {
+      db.ref("accounts").once("value").then(snapshot => {
+        const data = snapshot.val();
+        const entries = Object.entries(data || {}).filter(([_, value]) => value.used !== true);
 
-      if (entries.length === 0) {
-        content.innerHTML = "<p>Hết tài khoản để cấp!</p>";
-        return;
-      }
+        totalCountEl.innerText = `Tổng số tài khoản còn lại: ${entries.length}`;
 
-      // Lấy tài khoản ngẫu nhiên
-      const randomIndex = Math.floor(Math.random() * entries.length);
-      const [accountId, account] = entries[randomIndex];
+        if (entries.length === 0) {
+          content.innerHTML = "<p>Hết tài khoản để cấp!</p>";
+          return;
+        }
 
-      const createRow = (label, value, id) => `
-        <div class="label">${label}</div>
-        <div class="value">
-          <span id="${id}">${value}</span>
-          <button onclick="copy('${id}', '${accountId}')">Copy</button>
-        </div>
-      `;
+        // Lấy tài khoản ngẫu nhiên
+        const randomIndex = Math.floor(Math.random() * entries.length);
+        const [accountId, account] = entries[randomIndex];
 
-      const html = `
-        ${createRow('Tên đăng nhập:', account.username || '', 'user')}
-        ${createRow('Mật khẩu:', account.password || '', 'pass')}
-        ${createRow('Email:', account.email || '', 'mail')}
-        ${createRow('Mật khẩu Email:', account.passmail || '', 'passmail')}
-      `;
+        const createRow = (label, value, id) => `
+          <div class="label">${label}</div>
+          <div class="value">
+            <span id="${id}">${value}</span>
+            <button onclick="copy('${id}', '${accountId}')">Copy</button>
+          </div>
+        `;
 
-      content.innerHTML = html;
-    });
+        const html = `
+          ${createRow('Tên đăng nhập:', account.username || '', 'user')}
+          ${createRow('Mật khẩu:', account.password || '', 'pass')}
+          ${createRow('Email:', account.email || '', 'mail')}
+          ${createRow('Mật khẩu Email:', account.passmail || '', 'passmail')}
+        `;
+
+        content.innerHTML = html;
+      });
+    }
 
     function copy(id, accountId) {
       const text = document.getElementById(id).innerText;
       navigator.clipboard.writeText(text).then(() => {
         alert('Đã copy: ' + text);
 
-        // Lấy dữ liệu tài khoản để chuyển sang used/
         firebase.database().ref("accounts/" + accountId).once("value").then(snapshot => {
           const account = snapshot.val();
           firebase.database().ref("used/" + accountId).set(account).then(() => {
             firebase.database().ref("accounts/" + accountId).remove();
+            loadAccount();
           });
         });
       });
     }
+
+    // Tải tài khoản đầu tiên khi trang load
+    window.onload = loadAccount;
   </script>
 </body>
 </html>
