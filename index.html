@@ -51,6 +51,7 @@
 </head>
 <body>
   <h2>Danh sách tài khoản từ Firebase</h2>
+  <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
   <div id="accountContent" class="card">Đang tải dữ liệu...</div>
 
   <div class="card">
@@ -85,6 +86,7 @@
     const db = firebase.database();
 
     const content = document.getElementById("accountContent");
+    const totalCountEl = document.getElementById("totalCount");
 
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
@@ -114,9 +116,11 @@
     }
 
     function loadAccount() {
-      db.ref("accounts").once("value").then(snapshot => {
+      db.ref("accounts").on("value", snapshot => {
         const data = snapshot.val();
         const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true && !acc.fixed);
+
+        totalCountEl.innerText = `Tổng số tài khoản còn lại: ${entries.length}`;
 
         if (entries.length === 0) {
           content.innerHTML = "<p>Hết tài khoản để cấp!</p>";
