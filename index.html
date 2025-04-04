@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Copy Tài Khoản</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      background: #f8f8f8;
+    }
+    .account {
+      background: #fff;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    button {
+      padding: 8px 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>Danh sách tài khoản</h2>
+  <div class="account">
+    <span id="acc1">email1@example.com:password123</span>
+    <button onclick="copyToClipboard('acc1')">Copy</button>
+  </div>
+  <div class="account">
+    <span id="acc2">email2@example.com:pass456</span>
+    <button onclick="copyToClipboard('acc2')">Copy</button>
+  </div>
+  <script>
+    function copyToClipboard(id) {
+      const text = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Đã copy: " + text);
+      });
+    }
+  </script>
+</body>
+</html>
