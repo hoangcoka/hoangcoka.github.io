@@ -2,44 +2,72 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Copy Tài Khoản</title>
+  <title>Danh sách tài khoản</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 40px;
       background: #f8f8f8;
     }
+    textarea {
+      font-size: 16px;
+      padding: 10px;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
     .account {
       background: #fff;
       padding: 15px;
-      margin-bottom: 10px;
+      margin-top: 10px;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }
-    button {
-      padding: 8px 12px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
+      max-width: 600px;
     }
   </style>
 </head>
 <body>
-  <h2>Danh sách tài khoản</h2>
-  <div class="account">
-    <span id="acc1">email1@example.com:password123</span>
-    <button onclick="copyToClipboard('acc1')">Copy</button>
-  </div>
-  <div class="account">
-    <span id="acc2">email2@example.com:pass456</span>
-    <button onclick="copyToClipboard('acc2')">Copy</button>
-  </div>
+
+  <h2>Nhập danh sách tài khoản</h2>
+  <textarea id="rawInput" rows="8" placeholder="Ví dụ:\nemail1|pass1\nemail2 pass2\nemail3:pass3"></textarea><br>
+  <button onclick="parseAccounts()">Tạo danh sách</button>
+
+  <div id="accountList"></div>
+
   <script>
+    function parseAccounts() {
+      const input = document.getElementById('rawInput').value.trim();
+      const lines = input.split('\n');
+      const output = document.getElementById('accountList');
+      output.innerHTML = '';
+
+      lines.forEach((line, index) => {
+        let parts = line.trim().split(/[\|\s:]/); // tách theo |, khoảng trắng hoặc :
+        if (parts.length >= 2) {
+          const acc = `${parts[0]}:${parts[1]}`;
+          const div = document.createElement('div');
+          div.className = 'account';
+          div.innerHTML = `
+            <span id="acc${index}">${acc}</span>
+            <button onclick="copyToClipboard('acc${index}')">Copy</button>
+          `;
+          output.appendChild(div);
+        }
+      });
+    }
+
     function copyToClipboard(id) {
       const text = document.getElementById(id).innerText;
       navigator.clipboard.writeText(text).then(() => {
@@ -47,5 +75,6 @@
       });
     }
   </script>
+
 </body>
 </html>
