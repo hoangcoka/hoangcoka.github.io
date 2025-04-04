@@ -1,49 +1,49 @@
-<script>
-  fetch('accounts.txt')
-    .then(res => res.text())
-    .then(data => {
-      const line = data.trim().split('\n')[0]; // chỉ lấy dòng đầu
-      const delimiters = [/\|/, /:/, /\s+/]; // các kiểu phân tách
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Thông tin tài khoản</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      padding: 40px;
+    }
+    .card {
+      background: white;
+      max-width: 500px;
+      padding: 20px;
+      margin: auto;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .label {
+      font-weight: bold;
+      margin-top: 15px;
+    }
+    .value {
+      background: #eee;
+      padding: 8px;
+      border-radius: 6px;
+      margin-top: 5px;
+      font-family: monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    button {
+      padding: 5px 10px;
+      margin-left: 10px;
+      font-size: 13px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
 
-      let parts = [];
-      for (let delimiter of delimiters) {
-        const temp = line.split(delimiter);
-        if (temp.length >= 2 && temp.length <= 4) {
-          parts = temp;
-          break;
-        }
-      }
-
-      const username = parts[0] || '';
-      const password = parts[1] || '';
-      const email = parts[2] || '';
-      const passmail = parts[3] || '';
-
-      const createRow = (label, value, id) => `
-        <div class="label">${label}</div>
-        <div class="value">
-          <span id="${id}">${value}</span>
-          <button onclick="copy('${id}')">Copy</button>
-        </div>
-      `;
-
-      const html = `
-        ${createRow('Tên đăng nhập:', username, 'user')}
-        ${createRow('Mật khẩu:', password, 'pass')}
-        ${createRow('Email:', email, 'mail')}
-        ${createRow('Mật khẩu Email:', passmail, 'passmail')}
-      `;
-
-      document.getElementById('accountContent').innerHTML = html;
-    })
-    .catch(() => {
-      document.getElementById('accountContent').innerText = 'Không tải được file.';
-    });
-
-  function copy(id) {
-    const text = document.getElementById(id).innerText;
-    navigator.clipboard.writeText(text).then(() => {
-      alert('Đã copy: ' + text);
-    });
-  }
-</script>
+  <div class="card">
+    <div id="accountContent">Đang tải dữ
