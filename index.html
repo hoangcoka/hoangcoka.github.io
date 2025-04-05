@@ -115,7 +115,7 @@
     // Hàm copyText
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
-      
+
       // Nếu tài khoản đã được sao chép (dựa trên localStorage), không sao chép lại
       if (localStorage.getItem(currentAccountId)) {
         toastr.info("Tài khoản này đã được sao chép rồi.");
