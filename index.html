@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hiển thị tài khoản để Copy + Apple ID cố định</title>
+
+  <!-- Thêm link CDN của toastr.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -113,21 +118,21 @@
       
       // Nếu tài khoản đã được sao chép (dựa trên localStorage), không sao chép lại
       if (localStorage.getItem(currentAccountId)) {
-        alert("Tài khoản này đã được sao chép rồi.");
+        toastr.info("Tài khoản này đã được sao chép rồi.");
         return;
       }
 
       // Sử dụng Clipboard API để sao chép
       navigator.clipboard.writeText(value).then(() => {
         // Thông báo sao chép thành công
-        alert("Đã copy: " + value);
+        toastr.success("Đã sao chép thành công: " + value);
         
         // Đánh dấu tài khoản là đã sao chép và lưu vào localStorage
         localStorage.setItem(currentAccountId, "true");
         markAccountAsUsed();
       }).catch(err => {
         console.error('Copy failed: ', err);
-        alert('Không thể sao chép. Vui lòng thử lại.');
+        toastr.error('Không thể sao chép. Vui lòng thử lại.');
       });
     }
 
@@ -175,7 +180,7 @@
         db.ref(`accounts/${currentAccountId}`).remove().then(() => {
           // Reset tài khoản khi xóa và lấy tài khoản mới
           localStorage.removeItem('savedAccountId');
-          alert("🗑 Tài khoản đã được xóa!");
+          toastr.info("Tài khoản đã bị xóa.");
           refreshAccount(true);
         });
       }
