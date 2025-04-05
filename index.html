@@ -47,12 +47,21 @@
       margin-right: 10px;
       font-family: monospace;
     }
+    .title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
   </style>
 </head>
 <body>
+  <div class="title">Chào mừng đến với hệ thống cấp tài khoản của Công Coka</div>
+
   <h2>Danh sách tài khoản từ Firebase</h2>
   <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
   <div id="accountContent" class="card">Đang tải dữ liệu...</div>
+  <button onclick="loadAccount()">Đổi tài khoản</button>
 
   <div class="card">
     <div class="label">ID Apple:</div>
@@ -116,11 +125,9 @@
     }
 
     function loadAccount() {
-      db.ref("accounts").on("value", snapshot => {
+      db.ref("accounts").once("value").then(snapshot => {
         const data = snapshot.val();
         const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true && !acc.fixed);
-
-        totalCountEl.innerText = `Tổng số tài khoản còn lại: ${entries.length}`;
 
         if (entries.length === 0) {
           content.innerHTML = "<p>Hết tài khoản để cấp!</p>";
@@ -142,6 +149,13 @@
         content.innerHTML = html;
       });
     }
+
+    // Cập nhật số lượng tài khoản còn lại realtime
+    db.ref("accounts").on("value", snapshot => {
+      const data = snapshot.val();
+      const entries = Object.values(data || {}).filter(acc => acc && acc.used !== true && !acc.fixed);
+      totalCountEl.innerText = `Tổng số tài khoản còn lại: ${entries.length}`;
+    });
 
     window.onload = function() {
       loadAccount();
