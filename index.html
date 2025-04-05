@@ -115,7 +115,7 @@
     // Hàm copyText
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
-
+      
       // Nếu tài khoản đã được sao chép (dựa trên localStorage), không sao chép lại
       if (localStorage.getItem(currentAccountId)) {
         toastr.info("Tài khoản này đã được sao chép rồi.");
@@ -140,6 +140,40 @@
     function markAccountAsUsed() {
       if (currentAccountId) {
         db.ref(`accounts/${currentAccountId}`).update({ used: true });
+      }
+    }
+
+    // Hàm lưu ID Apple và Mật khẩu vào Firebase
+    function saveAppleId() {
+      const username = document.getElementById('appleId').value.trim();
+      const password = document.getElementById('applePass').value.trim();
+      
+      // Lưu ID Apple vào Firebase
+      db.ref("apple_id").set({ username, password })
+        .then(() => {
+          toastr.success("✅ Đã lưu Apple ID thành công!");
+          localStorage.setItem('appleId', username);  // Lưu vào localStorage để duy trì sau khi reload
+          localStorage.setItem('applePass', password);
+        })
+        .catch(error => {
+          toastr.error("❌ Lỗi khi lưu Apple ID: " + error.message);
+        });
+    }
+
+    // Hàm tải Apple ID từ Firebase và localStorage khi reload trang
+    function loadAppleId() {
+      const storedAppleId = localStorage.getItem('appleId');
+      const storedApplePass = localStorage.getItem('applePass');
+
+      if (storedAppleId && storedApplePass) {
+        document.getElementById('appleId').value = storedAppleId;
+        document.getElementById('applePass').value = storedApplePass;
+      } else {
+        db.ref("apple_id").once("value").then(snapshot => {
+          const data = snapshot.val() || {};
+          document.getElementById('appleId').value = data.username || "";
+          document.getElementById('applePass').value = data.password || "";
+        });
       }
     }
 
@@ -203,6 +237,7 @@
 
     window.onload = function() {
       refreshAccount(false);
+      loadAppleId();  // Tải Apple ID khi trang được load lại
     }
   </script>
 </body>
