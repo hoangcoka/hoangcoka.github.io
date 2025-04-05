@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hệ thống cấp tài khoản của Công Coka</title>
   <style>
-    /* Thêm CSS tùy chỉnh */
     body {
       font-family: Arial, sans-serif;
       background: #f4f4f4;
@@ -151,7 +150,7 @@
       if (navigator.clipboard) {
         navigator.clipboard.writeText(value).then(() => {
           showMessage("Đã copy tài khoản: " + value);
-          moveToUsed(currentAccountId);  // Chuyển tài khoản đã copy sang mục đã sử dụng
+          markAccountAsUsed(currentAccountId);  // Đánh dấu tài khoản đã sử dụng
         }).catch((err) => {
           alert("Lỗi khi sao chép: " + err);
         });
@@ -178,23 +177,25 @@
       document.body.removeChild(textArea);
     }
 
-    // Move account to used after being copied
-    function moveToUsed(accountId) {
-      db.ref(`accounts/${accountId}`).once('value').then(snapshot => {
-        const accountData = snapshot.val();
-        if (accountData) {
-          // Move account to used
-          db.ref(`used_accounts/${accountId}`).set(accountData).then(() => {
-            // Once successfully moved, remove it from the available accounts
-            db.ref(`accounts/${accountId}`).remove().then(() => {
-              refreshAccount();  // Refresh both accounts sections
-              refreshUsedAccount();
+    // Đánh dấu tài khoản đã sử dụng
+    function markAccountAsUsed(accountId) {
+      if (accountId) {
+        db.ref(`accounts/${accountId}`).once('value').then(snapshot => {
+          const accountData = snapshot.val();
+          if (accountData) {
+            // Đánh dấu tài khoản đã sử dụng
+            db.ref(`used_accounts/${accountId}`).set(accountData).then(() => {
+              // Xóa tài khoản khỏi mục chưa sử dụng sau khi đã sao chép
+              db.ref(`accounts/${accountId}`).remove().then(() => {
+                refreshAccount();
+                refreshUsedAccount();
+              });
             });
-          });
-        }
-      }).catch(error => {
-        console.error("Lỗi khi di chuyển tài khoản:", error);
-      });
+          }
+        }).catch(error => {
+          console.error("Lỗi khi di chuyển tài khoản:", error);
+        });
+      }
     }
 
     function showMessage(message) {
