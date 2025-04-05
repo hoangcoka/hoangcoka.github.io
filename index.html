@@ -154,7 +154,7 @@
       if (navigator.clipboard) {
         navigator.clipboard.writeText(value).then(() => {
           alert("Đã copy: " + value);
-          if (id === 'user') markAccountAsUsed();
+          if (id === 'user') moveToUsed(currentAccountId);  // Move account to used after copy
         }).catch((err) => {
           alert("Lỗi khi sao chép: " + err);
         });
@@ -181,32 +181,44 @@
       document.body.removeChild(textArea);
     }
 
-    function markAccountAsUsed() {
-      if (currentAccountId) {
-        db.ref(`accounts/${currentAccountId}`).update({ used: true }).then(() => {
-          refreshAccountCount();
+    // Move account to used after being copied
+    function moveToUsed(accountId) {
+      db.ref(`accounts/${accountId}`).once('value').then(snapshot => {
+        const accountData = snapshot.val();
+        if (accountData) {
+          // Move account to used
+          db.ref(`used_accounts/${accountId}`).set(accountData);
+          db.ref(`accounts/${accountId}`).remove();  // Remove from available accounts
+          refreshAccount(); // Refresh both sections
           refreshUsedAccount();
-        }).catch((error) => {
-          console.error("Lỗi khi cập nhật tài khoản:", error);
-        });
-      }
+        }
+      });
     }
 
-    function refreshAccountCount() {
-      db.ref('accounts').once('value').then(snapshot => {
+    function refreshAccount() {
+      db.ref("accounts").once("value").then(snapshot => {
         const data = snapshot.val();
-        const remainingAccounts = Object.values(data).filter(account => account.used !== true);
-        totalCountEl.innerText = `Tổng số tài khoản chưa sử dụng: ${remainingAccounts.length}`;
-        db.ref('stats/remainingAccounts').set(remainingAccounts.length);
-      }).catch((error) => {
-        console.error("Lỗi khi lấy số tài khoản:", error);
+        const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true);
+        totalCountEl.innerText = `Tổng số tài khoản chưa sử dụng: ${entries.length}`;
+
+        if (entries.length === 0) {
+          content.innerHTML = "<p>Hết tài khoản để cấp!</p>";
+          return;
+        }
+
+        const [id, acc] = entries[Math.floor(Math.random() * entries.length)];
+        currentAccountId = id;
+        localStorage.setItem("savedAccountId", id);
+        renderAccount(acc);
+      }).catch(error => {
+        console.error("Lỗi khi lấy dữ liệu tài khoản:", error);
       });
     }
 
     function refreshUsedAccount() {
-      db.ref('accounts').once('value').then(snapshot => {
+      db.ref('used_accounts').once('value').then(snapshot => {
         const data = snapshot.val();
-        const usedAccounts = Object.entries(data).filter(([key, acc]) => acc.used === true);
+        const usedAccounts = Object.entries(data || {});
         usedCountEl.innerText = `Tổng số tài khoản đã sử dụng: ${usedAccounts.length}`;
         displayUsedAccounts(usedAccounts);
       }).catch((error) => {
@@ -228,7 +240,7 @@
       if (navigator.clipboard) {
         navigator.clipboard.writeText(value).then(() => {
           alert("Đã copy tài khoản đã sử dụng: " + value);
-          db.ref(`accounts/${key}`).remove(); 
+          db.ref(`used_accounts/${key}`).remove();  // Xóa tài khoản sau khi copy
         }).catch((err) => {
           alert("Lỗi khi sao chép: " + err);
         });
@@ -243,36 +255,11 @@
         db.ref(`accounts/${currentAccountId}`).remove().then(() => {
           localStorage.removeItem('savedAccountId');
           alert("🗑 Tài khoản đã được xóa!");
-          refreshAccount(true);
+          refreshAccount();
         }).catch((error) => {
           console.error("Lỗi khi xóa tài khoản:", error);
         });
       }
-    }
-
-    function refreshAccount(force = false) {
-      db.ref("accounts").once("value").then(snapshot => {
-        const data = snapshot.val();
-        const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true);
-        totalCountEl.innerText = `Tổng số tài khoản chưa sử dụng: ${entries.length}`;
-
-        if (entries.length === 0) {
-          content.innerHTML = "<p>Hết tài khoản để cấp!</p>";
-          return;
-        }
-
-        if (!force && currentAccountId && data[currentAccountId]) {
-          renderAccount(data[currentAccountId]);
-          return;
-        }
-
-        const [id, acc] = entries[Math.floor(Math.random() * entries.length)];
-        currentAccountId = id;
-        localStorage.setItem("savedAccountId", id);
-        renderAccount(acc);
-      }).catch(error => {
-        console.error("Lỗi khi lấy dữ liệu tài khoản:", error);
-      });
     }
 
     function renderAccount(acc) {
@@ -289,19 +276,8 @@
       content.innerHTML = html;
     }
 
-    function saveAppleId() {
-      const username = document.getElementById('appleId').value.trim();
-      const password = document.getElementById('applePass').value.trim();
-      db.ref("apple_id").set({ username, password, email: "", passmail: "", used: false, fixed: true })
-        .then(() => alert("✅ Đã lưu Apple ID thành công!"))
-        .catch(error => {
-          console.error("Lỗi khi lưu Apple ID:", error);
-          alert("Lỗi khi lưu Apple ID");
-        });
-    }
-
     window.onload = function() {
-      refreshAccount(false);
+      refreshAccount();
       refreshAccountCount();
       refreshUsedAccount();
     }
