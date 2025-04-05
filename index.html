@@ -111,7 +111,7 @@
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
 
-      // Kiểm tra xem API Clipboard có hỗ trợ không
+      // Kiểm tra xem Clipboard API có hỗ trợ không
       if (navigator.clipboard) {
         navigator.clipboard.writeText(value).then(() => {
           alert("Đã copy: " + value);
@@ -120,8 +120,28 @@
           alert("Lỗi khi sao chép: " + err);
         });
       } else {
-        alert("Trình duyệt này không hỗ trợ Clipboard API.");
+        // Nếu Clipboard API không hỗ trợ, sử dụng phương thức sao chép thủ công
+        fallbackCopyTextToClipboard(value);
       }
+    }
+
+    // Phương thức sao chép thủ công nếu Clipboard API không hỗ trợ
+    function fallbackCopyTextToClipboard(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          alert("Đã sao chép vào clipboard.");
+        } else {
+          alert("Không thể sao chép.");
+        }
+      } catch (err) {
+        alert("Không thể sao chép: " + err);
+      }
+      document.body.removeChild(textArea);
     }
 
     // Đánh dấu tài khoản là đã sử dụng
