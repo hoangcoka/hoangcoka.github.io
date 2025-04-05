@@ -65,7 +65,7 @@
 <body>
   <div class="title">Chào mừng đến với hệ thống cấp tài khoản của Công Coka</div>
 
-    <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
+  <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
   <div id="accountContent" class="card">Đang tải dữ liệu...</div>
   <div>
     <button onclick="refreshAccount(true)">Đổi tài khoản</button>
@@ -107,20 +107,40 @@
     const totalCountEl = document.getElementById("totalCount");
     let currentAccountId = localStorage.getItem('savedAccountId');
 
+    // Hàm copy dữ liệu
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
       navigator.clipboard.writeText(value).then(() => {
-        if (id === 'user') markAccountAsUsed();
         alert("Đã copy: " + value);
+        if (id === 'user') markAccountAsUsed();
+      }).catch((err) => {
+        alert("Lỗi khi sao chép: " + err);
       });
     }
 
+    // Đánh dấu tài khoản là đã sử dụng
     function markAccountAsUsed() {
       if (currentAccountId) {
-        db.ref(`accounts/${currentAccountId}`).update({ used: true });
+        db.ref(`accounts/${currentAccountId}`).update({ used: true }).then(() => {
+          refreshAccountCount();  // Cập nhật lại số tài khoản còn lại
+        }).catch((error) => {
+          console.error("Lỗi khi cập nhật tài khoản:", error);
+        });
       }
     }
 
+    // Cập nhật số tài khoản còn lại
+    function refreshAccountCount() {
+      db.ref('accounts').once('value').then(snapshot => {
+        const data = snapshot.val();
+        const remainingAccounts = Object.values(data).filter(account => account.used !== true); // Lọc tài khoản chưa được sử dụng
+        totalCountEl.innerText = `Tổng số tài khoản còn lại: ${remainingAccounts.length}`;
+      }).catch((error) => {
+        console.error("Lỗi khi lấy số tài khoản:", error);
+      });
+    }
+
+    // Hàm xóa tài khoản
     function deleteCurrentAccount() {
       if (currentAccountId) {
         const confirmDelete = confirm("Bạn có chắc chắn muốn xóa tài khoản này không?");
@@ -129,26 +149,14 @@
         db.ref(`accounts/${currentAccountId}`).remove().then(() => {
           localStorage.removeItem('savedAccountId');
           alert("🗑 Tài khoản đã được xóa!");
-          refreshAccount(true);
+          refreshAccount(true); // Tải lại tài khoản mới
+        }).catch((error) => {
+          console.error("Lỗi khi xóa tài khoản:", error);
         });
       }
     }
 
-    function loadAppleId() {
-      db.ref("apple_id").once("value").then(snapshot => {
-        const data = snapshot.val() || {};
-        document.getElementById('appleId').value = data.username || "";
-        document.getElementById('applePass').value = data.password || "";
-      });
-    }
-
-    function saveAppleId() {
-      const username = document.getElementById('appleId').value.trim();
-      const password = document.getElementById('applePass').value.trim();
-      db.ref("apple_id").set({ username, password, email: "", passmail: "", used: false, fixed: true })
-        .then(() => alert("✅ Đã lưu Apple ID thành công!"));
-    }
-
+    // Hàm hiển thị tài khoản
     function renderAccount(acc) {
       const html = `
         <div class='label'>Tên đăng nhập:</div>
@@ -163,6 +171,7 @@
       content.innerHTML = html;
     }
 
+    // Hàm tải tài khoản
     function refreshAccount(force = false) {
       db.ref("accounts").once("value").then(snapshot => {
         const data = snapshot.val();
@@ -183,13 +192,28 @@
         currentAccountId = id;
         localStorage.setItem("savedAccountId", id);
         renderAccount(acc);
+      }).catch(error => {
+        console.error("Lỗi khi lấy dữ liệu tài khoản:", error);
       });
     }
 
-    window.onload = function() {
-      refreshAccount(false);
-      loadAppleId();
+    // Lưu ID Apple vào Firebase
+    function saveAppleId() {
+      const username = document.getElementById('appleId').value.trim();
+      const password = document.getElementById('applePass').value.trim();
+      db.ref("apple_id").set({ username, password, email: "", passmail: "", used: false, fixed: true })
+        .then(() => alert("✅ Đã lưu Apple ID thành công!"))
+        .catch(error => {
+          console.error("Lỗi khi lưu Apple ID:", error);
+          alert("Lỗi khi lưu Apple ID");
+        });
     }
+
+    window.onload = function() {
+      refreshAccount(false); // Tải tài khoản khi trang load
+      refreshAccountCount(); // Cập nhật số tài khoản khi trang load
+    }
+
   </script>
 </body>
 </html>
