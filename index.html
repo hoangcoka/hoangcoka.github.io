@@ -68,6 +68,11 @@
     .stats div {
       margin: 0 15px;
     }
+    .message {
+      font-size: 14px;
+      margin-top: 10px;
+      color: green;
+    }
   </style>
 </head>
 <body>
@@ -133,12 +138,13 @@
     const usedContent = document.getElementById("usedAccountContent");
     const usedCountEl = document.getElementById("usedCount");
     let currentAccountId = localStorage.getItem('savedAccountId');
+    let messageEl = document.createElement("div");
 
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
       if (navigator.clipboard) {
         navigator.clipboard.writeText(value).then(() => {
-          alert("Đã copy: " + value);
+          showMessage("Đã copy tài khoản: " + value);
           moveToUsed(currentAccountId);  // Chuyển tài khoản đã copy sang mục đã sử dụng
         }).catch((err) => {
           alert("Lỗi khi sao chép: " + err);
@@ -156,7 +162,7 @@
       try {
         const successful = document.execCommand('copy');
         if (successful) {
-          alert("Đã sao chép vào clipboard.");
+          showMessage("Đã sao chép vào clipboard.");
         } else {
           alert("Không thể sao chép.");
         }
@@ -183,6 +189,15 @@
       }).catch(error => {
         console.error("Lỗi khi di chuyển tài khoản:", error);
       });
+    }
+
+    function showMessage(message) {
+      messageEl.innerText = message;
+      messageEl.className = 'message';
+      document.body.appendChild(messageEl);
+      setTimeout(() => {
+        messageEl.style.display = "none";
+      }, 2000);
     }
 
     function refreshAccount() {
