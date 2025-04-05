@@ -116,23 +116,20 @@
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
       
-      // Nếu tài khoản đã được sao chép (dựa trên localStorage), không sao chép lại
-      if (localStorage.getItem(currentAccountId)) {
-        toastr.info("Tài khoản này đã được sao chép rồi.");
+      // Kiểm tra xem Clipboard API có hỗ trợ không
+      if (!navigator.clipboard) {
+        alert("Clipboard API không được hỗ trợ trên trình duyệt này.");
         return;
       }
 
       // Sử dụng Clipboard API để sao chép
       navigator.clipboard.writeText(value).then(() => {
-        // Thông báo sao chép thành công
-        toastr.success("Đã sao chép thành công: " + value);
-        
-        // Đánh dấu tài khoản là đã sao chép và lưu vào localStorage
-        localStorage.setItem(currentAccountId, "true");
+        alert("Đã sao chép thành công: " + value);
+        localStorage.setItem(currentAccountId, "true");  // Đánh dấu tài khoản đã sao chép
         markAccountAsUsed();
       }).catch(err => {
         console.error('Copy failed: ', err);
-        toastr.error('Không thể sao chép. Vui lòng thử lại.');
+        alert('Không thể sao chép. Vui lòng thử lại.');
       });
     }
 
@@ -151,12 +148,12 @@
       // Lưu ID Apple vào Firebase
       db.ref("apple_id").set({ username, password })
         .then(() => {
-          toastr.success("✅ Đã lưu Apple ID thành công!");
+          alert("✅ Đã lưu Apple ID thành công!");
           localStorage.setItem('appleId', username);  // Lưu vào localStorage để duy trì sau khi reload
           localStorage.setItem('applePass', password);
         })
         .catch(error => {
-          toastr.error("❌ Lỗi khi lưu Apple ID: " + error.message);
+          alert("❌ Lỗi khi lưu Apple ID: " + error.message);
         });
     }
 
@@ -179,10 +176,8 @@
 
     // Hàm đổi tài khoản (reset tài khoản hiện tại)
     function refreshAccount(force = false) {
-      // Reset localStorage để sao chép lại tài khoản khác
-      localStorage.removeItem(currentAccountId);
+      localStorage.removeItem(currentAccountId);  // Reset tài khoản đã sao chép
 
-      // Lấy tài khoản tiếp theo từ Firebase
       db.ref("accounts").once("value").then(snapshot => {
         const data = snapshot.val();
         const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true && !acc.fixed);
@@ -212,9 +207,8 @@
         if (!confirmDelete) return;
 
         db.ref(`accounts/${currentAccountId}`).remove().then(() => {
-          // Reset tài khoản khi xóa và lấy tài khoản mới
           localStorage.removeItem('savedAccountId');
-          toastr.info("Tài khoản đã bị xóa.");
+          alert("🗑 Tài khoản đã được xóa!");
           refreshAccount(true);
         });
       }
