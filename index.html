@@ -65,7 +65,7 @@
 <body>
   <div class="title">Chào mừng đến với hệ thống cấp tài khoản của Công Coka</div>
 
-    <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
+  <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
   <div id="accountContent" class="card">Đang tải dữ liệu...</div>
   <div>
     <button onclick="refreshAccount(true)">Đổi tài khoản</button>
@@ -107,77 +107,43 @@
     const totalCountEl = document.getElementById("totalCount");
     let currentAccountId = localStorage.getItem('savedAccountId');
 
-    // Hàm copyText được gọi khi người dùng nhấn vào nút Copy
+    // Hàm copyText
     function copyText(id) {
-      // Lấy giá trị của input hoặc phần tử chứa dữ liệu
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
       
-      // Sử dụng Clipboard API để sao chép dữ liệu vào clipboard
+      // Nếu tài khoản đã được sao chép (dựa trên localStorage), không sao chép lại
+      if (localStorage.getItem(currentAccountId)) {
+        alert("Tài khoản này đã được sao chép rồi.");
+        return;
+      }
+
+      // Sử dụng Clipboard API để sao chép
       navigator.clipboard.writeText(value).then(() => {
         // Thông báo sao chép thành công
         alert("Đã copy: " + value);
         
-        // Đánh dấu tài khoản là đã sử dụng nếu là tài khoản user
-        if (id === 'user') {
-          markAccountAsUsed();
-        }
+        // Đánh dấu tài khoản là đã sao chép và lưu vào localStorage
+        localStorage.setItem(currentAccountId, "true");
+        markAccountAsUsed();
       }).catch(err => {
-        // Thông báo nếu gặp lỗi
         console.error('Copy failed: ', err);
         alert('Không thể sao chép. Vui lòng thử lại.');
       });
     }
 
-    // Hàm đánh dấu tài khoản đã sử dụng
+    // Đánh dấu tài khoản đã sử dụng trong Firebase
     function markAccountAsUsed() {
       if (currentAccountId) {
         db.ref(`accounts/${currentAccountId}`).update({ used: true });
       }
     }
 
-    function deleteCurrentAccount() {
-      if (currentAccountId) {
-        const confirmDelete = confirm("Bạn có chắc chắn muốn xóa tài khoản này không?");
-        if (!confirmDelete) return;
-
-        db.ref(`accounts/${currentAccountId}`).remove().then(() => {
-          localStorage.removeItem('savedAccountId');
-          alert("🗑 Tài khoản đã được xóa!");
-          refreshAccount(true);
-        });
-      }
-    }
-
-    function loadAppleId() {
-      db.ref("apple_id").once("value").then(snapshot => {
-        const data = snapshot.val() || {};
-        document.getElementById('appleId').value = data.username || "";
-        document.getElementById('applePass').value = data.password || "";
-      });
-    }
-
-    function saveAppleId() {
-      const username = document.getElementById('appleId').value.trim();
-      const password = document.getElementById('applePass').value.trim();
-      db.ref("apple_id").set({ username, password, email: "", passmail: "", used: false, fixed: true })
-        .then(() => alert("✅ Đã lưu Apple ID thành công!"));
-    }
-
-    function renderAccount(acc) {
-      const html = `
-        <div class='label'>Tên đăng nhập:</div>
-        <div class='value'><span id='user'>${acc.username}</span><button onclick="copyText('user')">Copy</button></div>
-        <div class='label'>Mật khẩu:</div>
-        <div class='value'><span id='pass'>${acc.password}</span><button onclick="copyText('pass')">Copy</button></div>
-        <div class='label'>Email:</div>
-        <div class='value'><span id='mail'>${acc.email}</span><button onclick="copyText('mail')">Copy</button></div>
-        <div class='label'>Mật khẩu Email:</div>
-        <div class='value'><span id='passmail'>${acc.passmail}</span><button onclick="copyText('passmail')">Copy</button></div>
-      `;
-      content.innerHTML = html;
-    }
-
+    // Hàm đổi tài khoản (reset tài khoản hiện tại)
     function refreshAccount(force = false) {
+      // Reset localStorage để sao chép lại tài khoản khác
+      localStorage.removeItem(currentAccountId);
+
+      // Lấy tài khoản tiếp theo từ Firebase
       db.ref("accounts").once("value").then(snapshot => {
         const data = snapshot.val();
         const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true && !acc.fixed);
@@ -200,9 +166,38 @@
       });
     }
 
+    // Hàm xóa tài khoản hiện tại
+    function deleteCurrentAccount() {
+      if (currentAccountId) {
+        const confirmDelete = confirm("Bạn có chắc chắn muốn xóa tài khoản này không?");
+        if (!confirmDelete) return;
+
+        db.ref(`accounts/${currentAccountId}`).remove().then(() => {
+          // Reset tài khoản khi xóa và lấy tài khoản mới
+          localStorage.removeItem('savedAccountId');
+          alert("🗑 Tài khoản đã được xóa!");
+          refreshAccount(true);
+        });
+      }
+    }
+
+    // Hàm hiển thị tài khoản
+    function renderAccount(acc) {
+      const html = `
+        <div class='label'>Tên đăng nhập:</div>
+        <div class='value'><span id='user'>${acc.username}</span><button onclick="copyText('user')">Copy</button></div>
+        <div class='label'>Mật khẩu:</div>
+        <div class='value'><span id='pass'>${acc.password}</span><button onclick="copyText('pass')">Copy</button></div>
+        <div class='label'>Email:</div>
+        <div class='value'><span id='mail'>${acc.email}</span><button onclick="copyText('mail')">Copy</button></div>
+        <div class='label'>Mật khẩu Email:</div>
+        <div class='value'><span id='passmail'>${acc.passmail}</span><button onclick="copyText('passmail')">Copy</button></div>
+      `;
+      content.innerHTML = html;
+    }
+
     window.onload = function() {
       refreshAccount(false);
-      loadAppleId();
     }
   </script>
 </body>
