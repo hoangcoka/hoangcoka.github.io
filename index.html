@@ -107,7 +107,6 @@
   </div>
 
   <div>
-    <button onclick="refreshAccount(true)">Đổi tài khoản</button>
     <button class="btn-red" onclick="deleteCurrentAccount()">Xóa tài khoản</button>
   </div>
 
@@ -155,7 +154,7 @@
         navigator.clipboard.writeText(value).then(() => {
           alert("Đã copy: " + value);
           if (id === 'user') {
-            moveToUsed(currentAccountId);  // Ensure this is executed right after copy
+            moveToUsed(currentAccountId);  // Chuyển tài khoản sau khi sao chép
           }
         }).catch((err) => {
           alert("Lỗi khi sao chép: " + err);
@@ -205,7 +204,7 @@
     function refreshAccount() {
       db.ref("accounts").once("value").then(snapshot => {
         const data = snapshot.val();
-        const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true);
+        const entries = Object.entries(data || {}).filter(([key, acc]) => acc && !acc.used && !acc.fixed);
         totalCountEl.innerText = `Tổng số tài khoản chưa sử dụng: ${entries.length}`;
 
         if (entries.length === 0) {
