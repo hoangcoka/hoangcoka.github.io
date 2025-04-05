@@ -181,7 +181,6 @@
       document.body.removeChild(textArea);
     }
 
-    // Đánh dấu tài khoản là đã sử dụng
     function markAccountAsUsed() {
       if (currentAccountId) {
         db.ref(`accounts/${currentAccountId}`).update({ used: true }).then(() => {
