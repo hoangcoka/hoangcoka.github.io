@@ -110,7 +110,7 @@
     // Hàm copy dữ liệu vào clipboard
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
-
+      
       // Kiểm tra xem Clipboard API có hỗ trợ không
       if (navigator.clipboard) {
         navigator.clipboard.writeText(value).then(() => {
@@ -161,6 +161,9 @@
         const data = snapshot.val();
         const remainingAccounts = Object.values(data).filter(account => account.used !== true); // Lọc tài khoản chưa được sử dụng
         totalCountEl.innerText = `Tổng số tài khoản còn lại: ${remainingAccounts.length}`;
+
+        // Cập nhật số tài khoản còn lại vào Firebase để đồng bộ hóa với tất cả thiết bị
+        db.ref('stats/remainingAccounts').set(remainingAccounts.length);
       }).catch((error) => {
         console.error("Lỗi khi lấy số tài khoản:", error);
       });
@@ -234,6 +237,12 @@
           alert("Lỗi khi lưu Apple ID");
         });
     }
+
+    // Lấy số tài khoản còn lại từ Firebase để đồng bộ với tất cả các thiết bị
+    db.ref('stats/remainingAccounts').on('value', snapshot => {
+      const remainingAccounts = snapshot.val();
+      totalCountEl.innerText = `Tổng số tài khoản còn lại: ${remainingAccounts}`;
+    });
 
     window.onload = function() {
       refreshAccount(false); // Tải tài khoản khi trang load
