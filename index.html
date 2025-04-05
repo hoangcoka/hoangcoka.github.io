@@ -60,13 +60,38 @@
       margin-bottom: 10px;
       color: #333;
     }
+    .tabs {
+      margin-top: 20px;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-button.active {
+      background-color: #007bff;
+    }
   </style>
 </head>
 <body>
   <div class="title">Chào mừng đến với hệ thống cấp tài khoản của Công Coka</div>
 
   <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
-  <div id="accountContent" class="card">Đang tải dữ liệu...</div>
+  <div id="usedCount" class="card">Tổng số tài khoản đã sử dụng: đang tải...</div>
+  
+  <div class="tabs">
+    <button class="tab-button active" onclick="showTab('accounts')">Tài khoản chưa sử dụng</button>
+    <button class="tab-button" onclick="showTab('usedAccounts')">Tài khoản đã sử dụng</button>
+  </div>
+
+  <!-- Tab chưa sử dụng -->
+  <div id="accounts" class="tab-content active">
+    <div id="accountContent" class="card">Đang tải dữ liệu...</div>
+  </div>
+
+  <!-- Tab đã sử dụng -->
+  <div id="usedAccounts" class="tab-content">
+    <div id="usedAccountContent" class="card">Đang tải dữ liệu đã sử dụng...</div>
+  </div>
+
   <div>
     <button onclick="refreshAccount(true)">Đổi tài khoản</button>
     <button class="btn-red" onclick="deleteCurrentAccount()">Xóa tài khoản</button>
@@ -105,13 +130,14 @@
 
     const content = document.getElementById("accountContent");
     const totalCountEl = document.getElementById("totalCount");
+    const usedContent = document.getElementById("usedAccountContent");
+    const usedCountEl = document.getElementById("usedCount");
     let currentAccountId = localStorage.getItem('savedAccountId');
 
     // Hàm copy dữ liệu vào clipboard
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
-      
-      // Kiểm tra xem Clipboard API có hỗ trợ không
+
       if (navigator.clipboard) {
         navigator.clipboard.writeText(value).then(() => {
           alert("Đã copy: " + value);
@@ -120,12 +146,11 @@
           alert("Lỗi khi sao chép: " + err);
         });
       } else {
-        // Nếu Clipboard API không hỗ trợ, sử dụng phương thức sao chép thủ công
         fallbackCopyTextToClipboard(value);
       }
     }
 
-    // Phương thức sao chép thủ công nếu Clipboard API không hỗ trợ
+    // Phương thức sao chép thủ công nếu clipboard API không hỗ trợ
     function fallbackCopyTextToClipboard(text) {
       const textArea = document.createElement("textarea");
       textArea.value = text;
@@ -149,6 +174,7 @@
       if (currentAccountId) {
         db.ref(`accounts/${currentAccountId}`).update({ used: true }).then(() => {
           refreshAccountCount();  // Cập nhật lại số tài khoản còn lại
+          refreshUsedAccount();  // Cập nhật lại tài khoản đã sử dụng
         }).catch((error) => {
           console.error("Lỗi khi cập nhật tài khoản:", error);
         });
@@ -159,17 +185,52 @@
     function refreshAccountCount() {
       db.ref('accounts').once('value').then(snapshot => {
         const data = snapshot.val();
-        const remainingAccounts = Object.values(data).filter(account => account.used !== true); // Lọc tài khoản chưa được sử dụng
+        const remainingAccounts = Object.values(data).filter(account => account.used !== true); // Lọc tài khoản chưa sử dụng
         totalCountEl.innerText = `Tổng số tài khoản còn lại: ${remainingAccounts.length}`;
 
-        // Cập nhật số tài khoản còn lại vào Firebase để đồng bộ hóa với tất cả thiết bị
+        // Cập nhật số tài khoản còn lại vào Firebase để đồng bộ hóa
         db.ref('stats/remainingAccounts').set(remainingAccounts.length);
       }).catch((error) => {
         console.error("Lỗi khi lấy số tài khoản:", error);
       });
     }
 
-    // Hàm xóa tài khoản
+    // Cập nhật tài khoản đã sử dụng
+    function refreshUsedAccount() {
+      db.ref('accounts').once('value').then(snapshot => {
+        const data = snapshot.val();
+        const usedAccounts = Object.entries(data).filter(([key, acc]) => acc.used === true); // Lọc tài khoản đã sử dụng
+        usedCountEl.innerText = `Tổng số tài khoản đã sử dụng: ${usedAccounts.length}`;
+        displayUsedAccounts(usedAccounts);
+      }).catch((error) => {
+        console.error("Lỗi khi lấy tài khoản đã sử dụng:", error);
+      });
+    }
+
+    // Hiển thị tài khoản đã sử dụng
+    function displayUsedAccounts(accounts) {
+      usedContent.innerHTML = accounts.map(([key, account]) => `
+        <div class='label'>Tên đăng nhập:</div>
+        <div class='value'><span id='usedUser'>${account.username}</span><button onclick="copyUsedAccount('usedUser', '${key}')">Copy</button></div>
+        <div class='label'>Mật khẩu:</div>
+        <div class='value'><span id='usedPass'>${account.password}</span><button onclick="copyUsedAccount('usedPass', '${key}')">Copy</button></div>
+      `).join('');
+    }
+
+    // Copy tài khoản đã sử dụng
+    function copyUsedAccount(id, key) {
+      const value = document.getElementById(id).innerText;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(value).then(() => {
+          alert("Đã copy tài khoản đã sử dụng: " + value);
+          db.ref(`accounts/${key}`).remove(); // Xóa tài khoản đã sao chép
+        }).catch((err) => {
+          alert("Lỗi khi sao chép: " + err);
+        });
+      }
+    }
+
+    // Xóa tài khoản
     function deleteCurrentAccount() {
       if (currentAccountId) {
         const confirmDelete = confirm("Bạn có chắc chắn muốn xóa tài khoản này không?");
@@ -185,26 +246,11 @@
       }
     }
 
-    // Hàm hiển thị tài khoản
-    function renderAccount(acc) {
-      const html = `
-        <div class='label'>Tên đăng nhập:</div>
-        <div class='value'><span id='user'>${acc.username}</span><button onclick="copyText('user')">Copy</button></div>
-        <div class='label'>Mật khẩu:</div>
-        <div class='value'><span id='pass'>${acc.password}</span><button onclick="copyText('pass')">Copy</button></div>
-        <div class='label'>Email:</div>
-        <div class='value'><span id='mail'>${acc.email}</span><button onclick="copyText('mail')">Copy</button></div>
-        <div class='label'>Mật khẩu Email:</div>
-        <div class='value'><span id='passmail'>${acc.passmail}</span><button onclick="copyText('passmail')">Copy</button></div>
-      `;
-      content.innerHTML = html;
-    }
-
     // Hàm tải tài khoản
     function refreshAccount(force = false) {
       db.ref("accounts").once("value").then(snapshot => {
         const data = snapshot.val();
-        const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true && !acc.fixed);
+        const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true);
         totalCountEl.innerText = `Tổng số tài khoản còn lại: ${entries.length}`;
 
         if (entries.length === 0) {
@@ -238,7 +284,7 @@
         });
     }
 
-    // Lấy số tài khoản còn lại từ Firebase để đồng bộ với tất cả các thiết bị
+    // Lắng nghe sự thay đổi của số tài khoản còn lại và số tài khoản đã sử dụng
     db.ref('stats/remainingAccounts').on('value', snapshot => {
       const remainingAccounts = snapshot.val();
       totalCountEl.innerText = `Tổng số tài khoản còn lại: ${remainingAccounts}`;
@@ -247,6 +293,16 @@
     window.onload = function() {
       refreshAccount(false); // Tải tài khoản khi trang load
       refreshAccountCount(); // Cập nhật số tài khoản khi trang load
+      refreshUsedAccount(); // Cập nhật tài khoản đã sử dụng khi trang load
+    }
+
+    // Hiển thị tab tương ứng
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+      
+      document.getElementById(tabName).classList.add('active');
+      document.querySelector(`button[onclick="showTab('${tabName}')"]`).classList.add('active');
     }
 
   </script>
