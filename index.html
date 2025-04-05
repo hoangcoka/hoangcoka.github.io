@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hiển thị tài khoản để Copy + Apple ID cố định</title>
+  <title>Hệ thống cấp tài khoản của Công Coka</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -154,7 +154,9 @@
       if (navigator.clipboard) {
         navigator.clipboard.writeText(value).then(() => {
           alert("Đã copy: " + value);
-          if (id === 'user') moveToUsed(currentAccountId);  // Move account to used after copy
+          if (id === 'user') {
+            moveToUsed(currentAccountId);  // Ensure this is executed right after copy
+          }
         }).catch((err) => {
           alert("Lỗi khi sao chép: " + err);
         });
@@ -187,11 +189,16 @@
         const accountData = snapshot.val();
         if (accountData) {
           // Move account to used
-          db.ref(`used_accounts/${accountId}`).set(accountData);
-          db.ref(`accounts/${accountId}`).remove();  // Remove from available accounts
-          refreshAccount(); // Refresh both sections
-          refreshUsedAccount();
+          db.ref(`used_accounts/${accountId}`).set(accountData).then(() => {
+            // Once successfully moved, remove it from the available accounts
+            db.ref(`accounts/${accountId}`).remove().then(() => {
+              refreshAccount();  // Refresh both accounts sections
+              refreshUsedAccount();
+            });
+          });
         }
+      }).catch(error => {
+        console.error("Lỗi khi di chuyển tài khoản:", error);
       });
     }
 
