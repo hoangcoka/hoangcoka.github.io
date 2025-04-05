@@ -4,14 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hiển thị tài khoản để Copy + Apple ID cố định</title>
-
-  <!-- Thêm link CDN của toastr.js -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-
-  <!-- Thêm link CDN của Clipboard.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
-
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -73,7 +65,7 @@
 <body>
   <div class="title">Chào mừng đến với hệ thống cấp tài khoản của Công Coka</div>
 
-  <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
+    <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
   <div id="accountContent" class="card">Đang tải dữ liệu...</div>
   <div>
     <button onclick="refreshAccount(true)">Đổi tài khoản</button>
@@ -84,12 +76,12 @@
     <div class="label">ID Apple:</div>
     <div class="value">
       <input type="text" id="appleId" class="editable">
-      <button class="copy-btn" data-clipboard-target="#appleId">Copy</button>
+      <button onclick="copyText('appleId')">Copy</button>
     </div>
     <div class="label">Mật khẩu ID Apple:</div>
     <div class="value">
       <input type="text" id="applePass" class="editable">
-      <button class="copy-btn" data-clipboard-target="#applePass">Copy</button>
+      <button onclick="copyText('applePass')">Copy</button>
     </div>
     <button onclick="saveAppleId()" style="margin-top:15px;background:#28a745">Lưu Apple ID</button>
   </div>
@@ -115,64 +107,63 @@
     const totalCountEl = document.getElementById("totalCount");
     let currentAccountId = localStorage.getItem('savedAccountId');
 
-    // Hàm copyText - Đã sử dụng Clipboard.js
-    const clipboard = new ClipboardJS('.copy-btn');
+    function copyText(id) {
+      const value = document.getElementById(id).value || document.getElementById(id).innerText;
+      navigator.clipboard.writeText(value).then(() => {
+        if (id === 'user') markAccountAsUsed();
+        alert("Đã copy: " + value);
+      });
+    }
 
-    clipboard.on('success', function(e) {
-      toastr.success("Đã sao chép thành công: " + e.text);
-      localStorage.setItem(currentAccountId, "true");  // Đánh dấu tài khoản đã sao chép
-      markAccountAsUsed();
-    });
-
-    clipboard.on('error', function(e) {
-      toastr.error('Không thể sao chép. Vui lòng thử lại.');
-    });
-
-    // Đánh dấu tài khoản đã sử dụng trong Firebase
     function markAccountAsUsed() {
       if (currentAccountId) {
         db.ref(`accounts/${currentAccountId}`).update({ used: true });
       }
     }
 
-    // Hàm lưu ID Apple và Mật khẩu vào Firebase
-    function saveAppleId() {
-      const username = document.getElementById('appleId').value.trim();
-      const password = document.getElementById('applePass').value.trim();
-      
-      // Lưu ID Apple vào Firebase
-      db.ref("apple_id").set({ username, password })
-        .then(() => {
-          toastr.success("✅ Đã lưu Apple ID thành công!");
-          localStorage.setItem('appleId', username);  // Lưu vào localStorage để duy trì sau khi reload
-          localStorage.setItem('applePass', password);
-        })
-        .catch(error => {
-          toastr.error("❌ Lỗi khi lưu Apple ID: " + error.message);
-        });
-    }
+    function deleteCurrentAccount() {
+      if (currentAccountId) {
+        const confirmDelete = confirm("Bạn có chắc chắn muốn xóa tài khoản này không?");
+        if (!confirmDelete) return;
 
-    // Hàm tải Apple ID từ Firebase và localStorage khi reload trang
-    function loadAppleId() {
-      const storedAppleId = localStorage.getItem('appleId');
-      const storedApplePass = localStorage.getItem('applePass');
-
-      if (storedAppleId && storedApplePass) {
-        document.getElementById('appleId').value = storedAppleId;
-        document.getElementById('applePass').value = storedApplePass;
-      } else {
-        db.ref("apple_id").once("value").then(snapshot => {
-          const data = snapshot.val() || {};
-          document.getElementById('appleId').value = data.username || "";
-          document.getElementById('applePass').value = data.password || "";
+        db.ref(`accounts/${currentAccountId}`).remove().then(() => {
+          localStorage.removeItem('savedAccountId');
+          alert("🗑 Tài khoản đã được xóa!");
+          refreshAccount(true);
         });
       }
     }
 
-    // Hàm đổi tài khoản (reset tài khoản hiện tại)
-    function refreshAccount(force = false) {
-      localStorage.removeItem(currentAccountId);  // Reset tài khoản đã sao chép
+    function loadAppleId() {
+      db.ref("apple_id").once("value").then(snapshot => {
+        const data = snapshot.val() || {};
+        document.getElementById('appleId').value = data.username || "";
+        document.getElementById('applePass').value = data.password || "";
+      });
+    }
 
+    function saveAppleId() {
+      const username = document.getElementById('appleId').value.trim();
+      const password = document.getElementById('applePass').value.trim();
+      db.ref("apple_id").set({ username, password, email: "", passmail: "", used: false, fixed: true })
+        .then(() => alert("✅ Đã lưu Apple ID thành công!"));
+    }
+
+    function renderAccount(acc) {
+      const html = `
+        <div class='label'>Tên đăng nhập:</div>
+        <div class='value'><span id='user'>${acc.username}</span><button onclick="copyText('user')">Copy</button></div>
+        <div class='label'>Mật khẩu:</div>
+        <div class='value'><span id='pass'>${acc.password}</span><button onclick="copyText('pass')">Copy</button></div>
+        <div class='label'>Email:</div>
+        <div class='value'><span id='mail'>${acc.email}</span><button onclick="copyText('mail')">Copy</button></div>
+        <div class='label'>Mật khẩu Email:</div>
+        <div class='value'><span id='passmail'>${acc.passmail}</span><button onclick="copyText('passmail')">Copy</button></div>
+      `;
+      content.innerHTML = html;
+    }
+
+    function refreshAccount(force = false) {
       db.ref("accounts").once("value").then(snapshot => {
         const data = snapshot.val();
         const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true && !acc.fixed);
@@ -195,38 +186,9 @@
       });
     }
 
-    // Hàm xóa tài khoản hiện tại
-    function deleteCurrentAccount() {
-      if (currentAccountId) {
-        const confirmDelete = confirm("Bạn có chắc chắn muốn xóa tài khoản này không?");
-        if (!confirmDelete) return;
-
-        db.ref(`accounts/${currentAccountId}`).remove().then(() => {
-          localStorage.removeItem('savedAccountId');
-          toastr.info("Tài khoản đã bị xóa.");
-          refreshAccount(true);
-        });
-      }
-    }
-
-    // Hàm hiển thị tài khoản
-    function renderAccount(acc) {
-      const html = `
-        <div class='label'>Tên đăng nhập:</div>
-        <div class='value'><span id='user'>${acc.username}</span><button class="copy-btn" data-clipboard-target="#user">Copy</button></div>
-        <div class='label'>Mật khẩu:</div>
-        <div class='value'><span id='pass'>${acc.password}</span><button class="copy-btn" data-clipboard-target="#pass">Copy</button></div>
-        <div class='label'>Email:</div>
-        <div class='value'><span id='mail'>${acc.email}</span><button class="copy-btn" data-clipboard-target="#mail">Copy</button></div>
-        <div class='label'>Mật khẩu Email:</div>
-        <div class='value'><span id='passmail'>${acc.passmail}</span><button class="copy-btn" data-clipboard-target="#passmail">Copy</button></div>
-      `;
-      content.innerHTML = html;
-    }
-
     window.onload = function() {
       refreshAccount(false);
-      loadAppleId();  // Tải Apple ID khi trang được load lại
+      loadAppleId();
     }
   </script>
 </body>
