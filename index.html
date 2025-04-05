@@ -109,13 +109,16 @@
 
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
-      navigator.clipboard.writeText(value).then(() => {
-        alert("Đã copy: " + value);
-        if (id === 'user') markAccountAsUsed(); // Đánh dấu tài khoản đã sử dụng khi copy tên đăng nhập
-      }).catch((err) => {
-        console.log("Clipboard error: ", err);
-        alert("Không thể copy. Vui lòng thử lại.");
-      });
+      
+      navigator.clipboard.writeText(value)
+        .then(() => {
+          alert("Đã copy: " + value);
+          if (id === 'user') markAccountAsUsed(); // Đánh dấu tài khoản đã sử dụng khi copy tên đăng nhập
+        })
+        .catch((err) => {
+          console.log("Clipboard error: ", err);
+          alert("Không thể copy. Vui lòng thử lại.");
+        });
     }
 
     function markAccountAsUsed() {
