@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
+  <!-- Thêm link CDN của Clipboard.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -81,12 +84,12 @@
     <div class="label">ID Apple:</div>
     <div class="value">
       <input type="text" id="appleId" class="editable">
-      <button onclick="copyText('appleId')">Copy</button>
+      <button class="copy-btn" data-clipboard-target="#appleId">Copy</button>
     </div>
     <div class="label">Mật khẩu ID Apple:</div>
     <div class="value">
       <input type="text" id="applePass" class="editable">
-      <button onclick="copyText('applePass')">Copy</button>
+      <button class="copy-btn" data-clipboard-target="#applePass">Copy</button>
     </div>
     <button onclick="saveAppleId()" style="margin-top:15px;background:#28a745">Lưu Apple ID</button>
   </div>
@@ -112,26 +115,18 @@
     const totalCountEl = document.getElementById("totalCount");
     let currentAccountId = localStorage.getItem('savedAccountId');
 
-    // Hàm copyText
-    function copyText(id) {
-      const value = document.getElementById(id).value || document.getElementById(id).innerText;
-      
-      // Kiểm tra xem Clipboard API có hỗ trợ không
-      if (!navigator.clipboard) {
-        alert("Clipboard API không được hỗ trợ trên trình duyệt này.");
-        return;
-      }
+    // Hàm copyText - Đã sử dụng Clipboard.js
+    const clipboard = new ClipboardJS('.copy-btn');
 
-      // Sử dụng Clipboard API để sao chép
-      navigator.clipboard.writeText(value).then(() => {
-        alert("Đã sao chép thành công: " + value);
-        localStorage.setItem(currentAccountId, "true");  // Đánh dấu tài khoản đã sao chép
-        markAccountAsUsed();
-      }).catch(err => {
-        console.error('Copy failed: ', err);
-        alert('Không thể sao chép. Vui lòng thử lại.');
-      });
-    }
+    clipboard.on('success', function(e) {
+      toastr.success("Đã sao chép thành công: " + e.text);
+      localStorage.setItem(currentAccountId, "true");  // Đánh dấu tài khoản đã sao chép
+      markAccountAsUsed();
+    });
+
+    clipboard.on('error', function(e) {
+      toastr.error('Không thể sao chép. Vui lòng thử lại.');
+    });
 
     // Đánh dấu tài khoản đã sử dụng trong Firebase
     function markAccountAsUsed() {
@@ -148,12 +143,12 @@
       // Lưu ID Apple vào Firebase
       db.ref("apple_id").set({ username, password })
         .then(() => {
-          alert("✅ Đã lưu Apple ID thành công!");
+          toastr.success("✅ Đã lưu Apple ID thành công!");
           localStorage.setItem('appleId', username);  // Lưu vào localStorage để duy trì sau khi reload
           localStorage.setItem('applePass', password);
         })
         .catch(error => {
-          alert("❌ Lỗi khi lưu Apple ID: " + error.message);
+          toastr.error("❌ Lỗi khi lưu Apple ID: " + error.message);
         });
     }
 
@@ -208,7 +203,7 @@
 
         db.ref(`accounts/${currentAccountId}`).remove().then(() => {
           localStorage.removeItem('savedAccountId');
-          alert("🗑 Tài khoản đã được xóa!");
+          toastr.info("Tài khoản đã bị xóa.");
           refreshAccount(true);
         });
       }
@@ -218,13 +213,13 @@
     function renderAccount(acc) {
       const html = `
         <div class='label'>Tên đăng nhập:</div>
-        <div class='value'><span id='user'>${acc.username}</span><button onclick="copyText('user')">Copy</button></div>
+        <div class='value'><span id='user'>${acc.username}</span><button class="copy-btn" data-clipboard-target="#user">Copy</button></div>
         <div class='label'>Mật khẩu:</div>
-        <div class='value'><span id='pass'>${acc.password}</span><button onclick="copyText('pass')">Copy</button></div>
+        <div class='value'><span id='pass'>${acc.password}</span><button class="copy-btn" data-clipboard-target="#pass">Copy</button></div>
         <div class='label'>Email:</div>
-        <div class='value'><span id='mail'>${acc.email}</span><button onclick="copyText('mail')">Copy</button></div>
+        <div class='value'><span id='mail'>${acc.email}</span><button class="copy-btn" data-clipboard-target="#mail">Copy</button></div>
         <div class='label'>Mật khẩu Email:</div>
-        <div class='value'><span id='passmail'>${acc.passmail}</span><button onclick="copyText('passmail')">Copy</button></div>
+        <div class='value'><span id='passmail'>${acc.passmail}</span><button class="copy-btn" data-clipboard-target="#passmail">Copy</button></div>
       `;
       content.innerHTML = html;
     }
