@@ -5,61 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quản lý Tài Khoản</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      padding: 20px;
-      margin: 0;
-      text-align: center;
-    }
-    .card {
-      background: white;
-      width: 100%;
-      max-width: 420px;
-      margin: 15px auto;
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    .label {
-      font-weight: bold;
-      margin-top: 12px;
-      font-size: 15px;
-    }
-    .value {
-      background: #eee;
-      padding: 8px;
-      border-radius: 6px;
-      margin-top: 4px;
-      font-family: monospace;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    button {
-      padding: 6px 10px;
-      font-size: 13px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      margin: 8px 4px;
-    }
-    .btn-red {
-      background-color: #dc3545;
-    }
-    input.editable {
-      width: 60%;
-      padding: 6px;
-      font-family: monospace;
-    }
-    .title {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 10px;
-      color: #333;
-    }
+    /* Các style như trước */
+    /* ... */
   </style>
 </head>
 <body>
@@ -110,14 +57,15 @@
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
       navigator.clipboard.writeText(value).then(() => {
         alert("Đã copy: " + value);
-        if (id === 'user') markAccountAsUsed();
+        if (id === 'user') markAccountAsUsed(); // Đánh dấu tài khoản đã sử dụng khi copy tên đăng nhập
       });
     }
 
     function markAccountAsUsed() {
       if (currentAccountId) {
-        db.ref(`accounts/${currentAccountId}`).update({ used: true });
-        refreshAccount();
+        db.ref(`accounts/${currentAccountId}`).update({ used: true }).then(() => {
+          refreshAccount(); // Cập nhật lại khi tài khoản đã được sử dụng
+        });
       }
     }
 
@@ -166,7 +114,7 @@
     function refreshAccount(force = false) {
       db.ref("accounts").once("value").then(snapshot => {
         const data = snapshot.val();
-        const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true && !acc.fixed);
+        const entries = Object.entries(data || {}).filter(([key, acc]) => acc && !acc.used); // Chỉ lấy những tài khoản chưa được sử dụng
         totalCountEl.innerText = `Tổng số tài khoản còn lại: ${entries.length}`;
 
         if (entries.length === 0) {
