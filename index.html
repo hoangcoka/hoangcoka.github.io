@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quản lý Tài Khoản</title>
+  <title>Hiển thị tài khoản để Copy + Apple ID cố định</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -64,13 +64,28 @@
 </head>
 <body>
   <div class="title">Chào mừng đến với hệ thống cấp tài khoản của Công Coka</div>
-  <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
-  <div id="accountContent" class="card">Đang tải dữ liệu...</div>
-  <div>
-    <button onclick="refreshAccount(true)">Đổi tài khoản</button>
-    <button class="btn-red" onclick="deleteCurrentAccount()">Xóa tài khoản</button>
+
+  <!-- Thống kê tài khoản -->
+  <div class="card">
+    <p>Tổng số tài khoản chưa sử dụng: <span id="remainingCount">Đang tải...</span></p>
+    <p>Tổng số tài khoản đã sử dụng: <span id="usedCount">Đang tải...</span></p>
   </div>
 
+  <!-- Tab Tài khoản chưa sử dụng -->
+  <div class="card" id="accountContent"></div>
+  <div>
+    <button id="copyBtn" onclick="copyAccount()">Copy</button>
+    <button onclick="changeAccount()">Đổi tài khoản</button>
+  </div>
+
+  <!-- Tab Tài khoản đã sử dụng -->
+  <div class="card">
+    <p>Tài khoản đã sử dụng:</p>
+    <div id="usedAccounts"></div>
+    <button id="copyUsedBtn" onclick="copyUsedAccount()">Copy</button>
+  </div>
+
+  <!-- Apple ID -->
   <div class="card">
     <div class="label">ID Apple:</div>
     <div class="value">
@@ -90,6 +105,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <script>
+    // Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyCZNtz2gIoKL_sKOTEn71TVN79bGaE3n8s",
       authDomain: "hoangcoka-59852.firebaseapp.com",
@@ -97,99 +113,85 @@
       projectId: "hoangcoka-59852",
       storageBucket: "hoangcoka-59852.appspot.com",
       messagingSenderId: "253139527895",
-      appId: "1:253139527895:web:622bee351144667feb6892"
+      appId: "1:253139527895:web:622bee351144667feb6892",
+      measurementId: "G-T986WGN1S9"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const content = document.getElementById("accountContent");
-    const totalCountEl = document.getElementById("totalCount");
-    let currentAccountId = localStorage.getItem('savedAccountId');
+    // Update count on page load
+    const remainingCountEl = document.getElementById("remainingCount");
+    const usedCountEl = document.getElementById("usedCount");
 
+    // Load data
+    function loadCounts() {
+      db.ref("accounts").once("value").then(snapshot => {
+        const data = snapshot.val();
+        const remaining = Object.values(data || {}).filter(acc => !acc.used).length;
+        const used = Object.values(data || {}).filter(acc => acc.used).length;
+
+        remainingCountEl.textContent = remaining;
+        usedCountEl.textContent = used;
+      });
+    }
+
+    // Copy Account
+    function copyAccount() {
+      const accountId = document.getElementById("accountContent").dataset.id;
+      if (accountId) {
+        const account = db.ref("accounts/" + accountId);
+        account.update({ used: true }).then(() => {
+          alert("Tài khoản đã được sao chép và chuyển sang 'Tài khoản đã sử dụng'");
+          loadCounts();
+        });
+      }
+    }
+
+    // Change Account
+    function changeAccount() {
+      db.ref("accounts").once("value").then(snapshot => {
+        const accounts = Object.entries(snapshot.val() || {});
+        const unusedAccounts = accounts.filter(([id, acc]) => !acc.used);
+        const randomAccount = unusedAccounts[Math.floor(Math.random() * unusedAccounts.length)];
+        const [id, acc] = randomAccount;
+
+        // Display account
+        document.getElementById("accountContent").innerHTML = `
+          <div class="label">Tên đăng nhập:</div>
+          <div class="value">${acc.username}</div>
+          <div class="label">Mật khẩu:</div>
+          <div class="value">${acc.password}</div>
+          <div class="label">Email:</div>
+          <div class="value">${acc.email}</div>
+          <div class="label">Mật khẩu Email:</div>
+          <div class="value">${acc.passmail}</div>
+        `;
+        document.getElementById("accountContent").dataset.id = id;
+
+        loadCounts(); // Refresh counts
+      });
+    }
+
+    // Save Apple ID
+    function saveAppleId() {
+      const appleId = document.getElementById("appleId").value;
+      const applePass = document.getElementById("applePass").value;
+      db.ref("apple_id").set({
+        username: appleId,
+        password: applePass
+      }).then(() => alert("Đã lưu Apple ID!"));
+    }
+
+    // Copy Text
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
       navigator.clipboard.writeText(value).then(() => {
-        alert("Đã copy: " + value);
-        if (id === 'user') markAccountAsUsed();
-      });
-    }
-
-    function markAccountAsUsed() {
-      if (currentAccountId) {
-        db.ref(`accounts/${currentAccountId}`).update({ used: true }).then(() => {
-          refreshAccount();
-        });
-      }
-    }
-
-    function deleteCurrentAccount() {
-      if (currentAccountId) {
-        const confirmDelete = confirm("Bạn có chắc chắn muốn xóa tài khoản này không?");
-        if (!confirmDelete) return;
-
-        db.ref(`accounts/${currentAccountId}`).remove().then(() => {
-          localStorage.removeItem('savedAccountId');
-          alert("🗑 Tài khoản đã được xóa!");
-          refreshAccount(true);
-        });
-      }
-    }
-
-    function loadAppleId() {
-      db.ref("apple_id").once("value").then(snapshot => {
-        const data = snapshot.val() || {};
-        document.getElementById('appleId').value = data.username || "";
-        document.getElementById('applePass').value = data.password || "";
-      });
-    }
-
-    function saveAppleId() {
-      const username = document.getElementById('appleId').value.trim();
-      const password = document.getElementById('applePass').value.trim();
-      db.ref("apple_id").set({ username, password, email: "", passmail: "", used: false, fixed: true })
-        .then(() => alert("✅ Đã lưu Apple ID thành công!"));
-    }
-
-    function renderAccount(acc) {
-      const html = `
-        <div class='label'>Tên đăng nhập:</div>
-        <div class='value'><span id='user'>${acc.username}</span><button onclick="copyText('user')">Copy</button></div>
-        <div class='label'>Mật khẩu:</div>
-        <div class='value'><span id='pass'>${acc.password}</span><button onclick="copyText('pass')">Copy</button></div>
-        <div class='label'>Email:</div>
-        <div class='value'><span id='mail'>${acc.email}</span><button onclick="copyText('mail')">Copy</button></div>
-        <div class='label'>Mật khẩu Email:</div>
-        <div class='value'><span id='passmail'>${acc.passmail}</span><button onclick="copyText('passmail')">Copy</button></div>
-      `;
-      content.innerHTML = html;
-    }
-
-    function refreshAccount(force = false) {
-      db.ref("accounts").once("value").then(snapshot => {
-        const data = snapshot.val();
-        const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true && !acc.fixed);
-        totalCountEl.innerText = `Tổng số tài khoản còn lại: ${entries.length}`;
-
-        if (entries.length === 0) {
-          content.innerHTML = "<p>Hết tài khoản để cấp!</p>";
-          return;
-        }
-
-        if (!force && currentAccountId && data[currentAccountId]) {
-          renderAccount(data[currentAccountId]);
-          return;
-        }
-
-        const [id, acc] = entries[Math.floor(Math.random() * entries.length)];
-        currentAccountId = id;
-        localStorage.setItem("savedAccountId", id);
-        renderAccount(acc);
+        alert("Đã sao chép: " + value);
       });
     }
 
     window.onload = function() {
-      refreshAccount(false);
-      loadAppleId();
+      changeAccount();
     }
   </script>
 </body>
