@@ -73,14 +73,21 @@
     .tab-content.active {
       display: block;
     }
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
   </style>
 </head>
 <body>
   <div class="title">Chào mừng đến với hệ thống cấp tài khoản của Công Coka</div>
 
-  <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
-  <div id="usedCount" class="card">Tổng số tài khoản đã sử dụng: đang tải...</div>
-  
+  <div class="stats">
+    <div id="remainingCount">Đang tải số tài khoản...</div>
+    <div id="usedCount">Đang tải số tài khoản đã sử dụng...</div>
+  </div>
+
   <div class="tabs">
     <button class="tab-button active" onclick="showTab('accounts')">Tài khoản chưa sử dụng</button>
     <button class="tab-button" onclick="showTab('usedAccounts')">Tài khoản đã sử dụng</button>
@@ -133,11 +140,12 @@
     const db = firebase.database();
 
     const content = document.getElementById("accountContent");
-    const totalCountEl = document.getElementById("totalCount");
+    const totalCountEl = document.getElementById("remainingCount");
     const usedContent = document.getElementById("usedAccountContent");
     const usedCountEl = document.getElementById("usedCount");
     let currentAccountId = localStorage.getItem('savedAccountId');
 
+    // Hàm copy dữ liệu vào clipboard
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
 
@@ -153,6 +161,7 @@
       }
     }
 
+    // Phương thức sao chép thủ công nếu clipboard API không hỗ trợ
     function fallbackCopyTextToClipboard(text) {
       const textArea = document.createElement("textarea");
       textArea.value = text;
@@ -171,32 +180,37 @@
       document.body.removeChild(textArea);
     }
 
+    // Đánh dấu tài khoản là đã sử dụng
     function markAccountAsUsed() {
       if (currentAccountId) {
         db.ref(`accounts/${currentAccountId}`).update({ used: true }).then(() => {
-          refreshAccountCount();
-          refreshUsedAccount();
+          refreshAccountCount(); // Cập nhật lại số tài khoản còn lại
+          refreshUsedAccount();  // Cập nhật lại tài khoản đã sử dụng
         }).catch((error) => {
           console.error("Lỗi khi cập nhật tài khoản:", error);
         });
       }
     }
 
+    // Cập nhật số tài khoản còn lại
     function refreshAccountCount() {
       db.ref('accounts').once('value').then(snapshot => {
         const data = snapshot.val();
-        const remainingAccounts = Object.values(data).filter(account => account.used !== true);
-        totalCountEl.innerText = `Tổng số tài khoản còn lại: ${remainingAccounts.length}`;
+        const remainingAccounts = Object.values(data).filter(account => account.used !== true); // Lọc tài khoản chưa sử dụng
+        totalCountEl.innerText = `Tổng số tài khoản chưa sử dụng: ${remainingAccounts.length}`;
+
+        // Cập nhật số tài khoản còn lại vào Firebase để đồng bộ hóa
         db.ref('stats/remainingAccounts').set(remainingAccounts.length);
       }).catch((error) => {
         console.error("Lỗi khi lấy số tài khoản:", error);
       });
     }
 
+    // Cập nhật tài khoản đã sử dụng
     function refreshUsedAccount() {
       db.ref('accounts').once('value').then(snapshot => {
         const data = snapshot.val();
-        const usedAccounts = Object.entries(data).filter(([key, acc]) => acc.used === true);
+        const usedAccounts = Object.entries(data).filter(([key, acc]) => acc.used === true); // Lọc tài khoản đã sử dụng
         usedCountEl.innerText = `Tổng số tài khoản đã sử dụng: ${usedAccounts.length}`;
         displayUsedAccounts(usedAccounts);
       }).catch((error) => {
@@ -204,6 +218,7 @@
       });
     }
 
+    // Hiển thị tài khoản đã sử dụng
     function displayUsedAccounts(accounts) {
       usedContent.innerHTML = accounts.map(([key, account]) => `
         <div class='label'>Tên đăng nhập:</div>
@@ -213,18 +228,20 @@
       `).join('');
     }
 
+    // Copy tài khoản đã sử dụng
     function copyUsedAccount(id, key) {
       const value = document.getElementById(id).innerText;
       if (navigator.clipboard) {
         navigator.clipboard.writeText(value).then(() => {
           alert("Đã copy tài khoản đã sử dụng: " + value);
-          db.ref(`accounts/${key}`).remove();
+          db.ref(`accounts/${key}`).remove(); // Xóa tài khoản đã sao chép
         }).catch((err) => {
           alert("Lỗi khi sao chép: " + err);
         });
       }
     }
 
+    // Xóa tài khoản
     function deleteCurrentAccount() {
       if (currentAccountId) {
         const confirmDelete = confirm("Bạn có chắc chắn muốn xóa tài khoản này không?");
@@ -233,18 +250,19 @@
         db.ref(`accounts/${currentAccountId}`).remove().then(() => {
           localStorage.removeItem('savedAccountId');
           alert("🗑 Tài khoản đã được xóa!");
-          refreshAccount(true);
+          refreshAccount(true); // Tải lại tài khoản mới
         }).catch((error) => {
           console.error("Lỗi khi xóa tài khoản:", error);
         });
       }
     }
 
+    // Hàm tải tài khoản
     function refreshAccount(force = false) {
       db.ref("accounts").once("value").then(snapshot => {
         const data = snapshot.val();
         const entries = Object.entries(data || {}).filter(([key, acc]) => acc && acc.used !== true);
-        totalCountEl.innerText = `Tổng số tài khoản còn lại: ${entries.length}`;
+        totalCountEl.innerText = `Tổng số tài khoản chưa sử dụng: ${entries.length}`;
 
         if (entries.length === 0) {
           content.innerHTML = "<p>Hết tài khoản để cấp!</p>";
@@ -265,6 +283,7 @@
       });
     }
 
+    // Lưu ID Apple vào Firebase
     function saveAppleId() {
       const username = document.getElementById('appleId').value.trim();
       const password = document.getElementById('applePass').value.trim();
