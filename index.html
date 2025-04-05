@@ -110,8 +110,11 @@
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
       navigator.clipboard.writeText(value).then(() => {
-        if (id === 'user') markAccountAsUsed();
-        alert("Đã copy: " + value);
+        if (id === 'user') markAccountAsUsed();  // Chỉ cập nhật trạng thái khi tài khoản đã được sao chép
+        alert("Đã copy: " + value);  // Thông báo sao chép thành công
+      }).catch(err => {
+        console.error('Copy failed: ', err);
+        alert('Không thể sao chép. Vui lòng thử lại.');
       });
     }
 
