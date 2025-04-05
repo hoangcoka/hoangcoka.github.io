@@ -107,15 +107,21 @@
     const totalCountEl = document.getElementById("totalCount");
     let currentAccountId = localStorage.getItem('savedAccountId');
 
-    // Hàm copy dữ liệu
+    // Hàm copy dữ liệu vào clipboard
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
-      navigator.clipboard.writeText(value).then(() => {
-        alert("Đã copy: " + value);
-        if (id === 'user') markAccountAsUsed();
-      }).catch((err) => {
-        alert("Lỗi khi sao chép: " + err);
-      });
+
+      // Kiểm tra xem API Clipboard có hỗ trợ không
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(value).then(() => {
+          alert("Đã copy: " + value);
+          if (id === 'user') markAccountAsUsed();
+        }).catch((err) => {
+          alert("Lỗi khi sao chép: " + err);
+        });
+      } else {
+        alert("Trình duyệt này không hỗ trợ Clipboard API.");
+      }
     }
 
     // Đánh dấu tài khoản là đã sử dụng
