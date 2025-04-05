@@ -65,7 +65,7 @@
 <body>
   <div class="title">Chào mừng đến với hệ thống cấp tài khoản của Công Coka</div>
 
-    <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
+  <div id="totalCount" class="card">Tổng số tài khoản còn lại: đang tải...</div>
   <div id="accountContent" class="card">Đang tải dữ liệu...</div>
   <div>
     <button onclick="refreshAccount(true)">Đổi tài khoản</button>
@@ -107,20 +107,20 @@
     const totalCountEl = document.getElementById("totalCount");
     let currentAccountId = localStorage.getItem('savedAccountId');
 
+    // Hàm sao chép vào clipboard
     function copyText(id) {
       const value = document.getElementById(id).value || document.getElementById(id).innerText;
-      
-      navigator.clipboard.writeText(value)
-        .then(() => {
-          alert("Đã copy: " + value);
-          if (id === 'user') markAccountAsUsed(); // Đánh dấu tài khoản đã sử dụng khi copy tên đăng nhập
-        })
-        .catch((err) => {
-          console.log("Clipboard error: ", err);
-          alert("Không thể copy. Vui lòng thử lại.");
-        });
+
+      navigator.clipboard.writeText(value).then(() => {
+        alert("Đã copy: " + value); // Hiển thị thông báo đã copy
+        if (id === 'user') markAccountAsUsed(); // Đánh dấu tài khoản đã sử dụng khi copy tên đăng nhập
+      }).catch((err) => {
+        console.log("Clipboard error: ", err);
+        alert("Không thể copy. Vui lòng thử lại.");
+      });
     }
 
+    // Hàm đánh dấu tài khoản đã sử dụng
     function markAccountAsUsed() {
       if (currentAccountId) {
         db.ref(`accounts/${currentAccountId}`).update({ used: true }).then(() => {
@@ -129,6 +129,7 @@
       }
     }
 
+    // Xóa tài khoản
     function deleteCurrentAccount() {
       if (currentAccountId) {
         const confirmDelete = confirm("Bạn có chắc chắn muốn xóa tài khoản này không?");
@@ -142,6 +143,7 @@
       }
     }
 
+    // Tải Apple ID đã lưu từ Firebase
     function loadAppleId() {
       db.ref("apple_id").once("value").then(snapshot => {
         const data = snapshot.val() || {};
@@ -150,6 +152,7 @@
       });
     }
 
+    // Lưu Apple ID vào Firebase
     function saveAppleId() {
       const username = document.getElementById('appleId').value.trim();
       const password = document.getElementById('applePass').value.trim();
@@ -157,6 +160,7 @@
         .then(() => alert("✅ Đã lưu Apple ID thành công!"));
     }
 
+    // Hàm hiển thị tài khoản
     function renderAccount(acc) {
       const html = `
         <div class='label'>Tên đăng nhập:</div>
@@ -171,6 +175,7 @@
       content.innerHTML = html;
     }
 
+    // Hàm làm mới tài khoản
     function refreshAccount(force = false) {
       db.ref("accounts").once("value").then(snapshot => {
         const data = snapshot.val();
